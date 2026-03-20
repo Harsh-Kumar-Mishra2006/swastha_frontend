@@ -1,6 +1,6 @@
 // services/appointmentService.ts
 import api from './api';
-import { type AppointmentData, type AppointmentResponse } from '../types/appointments';
+import { type AppointmentData, } from '../types/appointments';
 
 class AppointmentService {
   // Check doctor availability for a specific slot

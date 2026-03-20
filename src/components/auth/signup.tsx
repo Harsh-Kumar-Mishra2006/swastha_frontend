@@ -35,16 +35,6 @@ const Signup = () => {
     }
   };
 
-  const validateDoctorRegistration = () => {
-    // This will be checked by backend anyway, but we can show a warning
-    if (formData.role === "doctor") {
-      toast.success(
-        "Note: Doctor accounts require admin approval. You'll be notified once verified.",
-      );
-    }
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

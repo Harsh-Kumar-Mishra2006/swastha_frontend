@@ -9,8 +9,6 @@ import { Navigate } from "react-router-dom";
 
 const AdminDoctorsContent = () => {
   const { doctors, fetchDoctors } = useAdmin();
-  const { user } = useAuth();
-
   useEffect(() => {
     fetchDoctors();
   }, []);

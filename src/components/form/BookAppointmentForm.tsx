@@ -31,7 +31,7 @@ interface DoctorInfo {
 const BookAppointmentForm = () => {
   const { doctorId } = useParams<{ doctorId: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { loading, checkAvailability, createPendingAppointment } =
     useAppointment();
 

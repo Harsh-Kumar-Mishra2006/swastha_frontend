@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAppointment } from "../../hooks/useAppointments";
 import { Calendar, Clock, IndianRupee, Video, Home } from "lucide-react";
 import { format } from "date-fns";
-import toast from "react-hot-toast";
 
 const MyAppointments = () => {
   const navigate = useNavigate();

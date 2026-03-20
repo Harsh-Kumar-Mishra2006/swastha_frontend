@@ -1,6 +1,5 @@
 // hooks/useAppointment.ts
 import { useState } from 'react';
-import { useAuth } from './useAuth';
 import appointmentService from '../services/appointmentService';
 import toast from 'react-hot-toast';
 import { type AppointmentData, type DoctorBookingInfo } from '../types/appointments';
@@ -8,7 +7,6 @@ import { type AppointmentData, type DoctorBookingInfo } from '../types/appointme
 export const useAppointment = () => {
   const [loading, setLoading] = useState(false);
   const [pendingAppointment, setPendingAppointment] = useState<any>(null);
-  const { user } = useAuth();
 
   const checkAvailability = async (doctorId: string, date: string, timeSlot: string) => {
     try {

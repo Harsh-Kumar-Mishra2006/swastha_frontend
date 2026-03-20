@@ -1,5 +1,3 @@
-// sections/home/ProgramsAchievements.tsx
-import React from "react";
 import { Award, Trophy, Users, Globe, TrendingUp, Target } from "lucide-react";
 
 const ProgramsAchievements = () => {

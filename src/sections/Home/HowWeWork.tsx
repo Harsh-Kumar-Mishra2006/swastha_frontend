@@ -1,5 +1,3 @@
-// sections/home/HowWeWork.tsx
-import React from "react";
 import {
   Search,
   Calendar,

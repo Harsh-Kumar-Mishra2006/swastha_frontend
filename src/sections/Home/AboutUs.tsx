@@ -1,5 +1,3 @@
-// sections/home/AboutUs.tsx
-import React from "react";
 import { Heart, Activity, Shield, Users } from "lucide-react";
 
 const AboutUs = () => {

@@ -1,5 +1,3 @@
-// sections/home/OurServices.tsx
-import React from "react";
 import {
   Pill,
   Microscope,

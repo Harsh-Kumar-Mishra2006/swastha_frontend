@@ -16,7 +16,7 @@ const Payment = () => {
     );
   }
 
-  return <PaymentPage appointmentId={appointmentId} />;
+  return <PaymentPage />;
 };
 
 export default Payment;

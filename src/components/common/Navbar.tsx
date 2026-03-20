@@ -28,7 +28,7 @@ const Navbar = () => {
     { name: "Contact Us", href: "/contact" },
   ];
 
-  if (isAuthenticated && user.role === "admin") {
+  if (isAuthenticated && user?.role === "admin") {
     navLinks.push({ name: "Add Doctor", href: "/add-doctor" });
   }
 

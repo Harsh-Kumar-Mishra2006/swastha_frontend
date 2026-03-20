@@ -113,7 +113,24 @@ const Profile: React.FC = () => {
   const onSubmitPatient = async (data: PatientFormData) => {
     try {
       setLoading(true);
-      const response = await authService.updateProfile(data);
+
+      // Clean the data - remove undefined values and handle emergency contact properly
+      const cleanedData = {
+        name: data.name,
+        phone: data.phone,
+        profile: {
+          ...data.profile,
+          emergencyContact: data.profile.emergencyContact
+            ? {
+                name: data.profile.emergencyContact.name || "",
+                relationship: data.profile.emergencyContact.relationship || "",
+                phone: data.profile.emergencyContact.phone || "",
+              }
+            : undefined,
+        },
+      };
+
+      const response = await authService.updateProfile(cleanedData);
       if (response.success) {
         updateUser(response.user);
         toast.success("Profile updated successfully");

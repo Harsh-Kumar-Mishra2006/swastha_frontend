@@ -43,7 +43,9 @@ class PaymentService {
 
   // Verify payment (redirect callback)
   getPaymentVerifyUrl(orderId: string) {
-    return `${process.env.REACT_APP_API_URL}/payments/verify?order_id=${orderId}`;
+    // Use Vite's environment variables
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    return `${apiUrl}/payments/verify?order_id=${orderId}`;
   }
 }
 

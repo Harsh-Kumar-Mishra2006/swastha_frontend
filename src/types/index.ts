@@ -60,7 +60,7 @@ export interface SignupData {
   username: string;
   phone: string;
   password: string;
-  role: 'patient' | 'doctor';
+  role: 'patient' | 'doctor' | 'admin';
   age?: string;
   gender?: string;
   dob?: string;

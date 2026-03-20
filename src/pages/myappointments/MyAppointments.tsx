@@ -8,7 +8,11 @@ const MyAppointments = () => {
   const navigate = useNavigate();
   const { loading, getMyAppointments, cancelAppointment } = useAppointment();
   const [appointments, setAppointments] = useState<any[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, total: 0, pages: 1 });
+  const [_pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    pages: 1,
+  });
 
   useEffect(() => {
     loadAppointments();

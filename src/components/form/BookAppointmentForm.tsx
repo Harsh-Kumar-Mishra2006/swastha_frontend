@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { useAppointment } from "../../hooks/useAppointments"; // ✅ Fixed import
+import { useAppointment } from "../../hooks/useAppointments";
 import api from "../../services/api";
 import {
   FileText,
@@ -37,7 +37,7 @@ const BookAppointmentForm = () => {
 
   const [doctor, setDoctor] = useState<DoctorInfo | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [pendingAppointment, setPendingAppointment] = useState<any>(null);
+  const [_pendingAppointment, setPendingAppointment] = useState<any>(null);
   const [checkingSlot, setCheckingSlot] = useState(false);
 
   // Form states

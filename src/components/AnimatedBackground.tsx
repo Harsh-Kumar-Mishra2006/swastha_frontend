@@ -7,7 +7,7 @@ interface AnimatedBackgroundProps {
 }
 
 const AnimatedBackground = ({ mouseX, mouseY }: AnimatedBackgroundProps) => {
-  const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
+  const [_dimensions, setDimensions] = useState({ width: 1200, height: 800 });
 
   useEffect(() => {
     setDimensions({

@@ -293,22 +293,6 @@ const Footer = () => {
                 offers.
               </p>
             </div>
-            <div className="flex space-x-4">
-              <button className="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center">
-                <div className="mr-3">
-                  <div className="text-xs">Download on the</div>
-                  <div className="text-lg font-bold">App Store</div>
-                </div>
-                <Download className="h-6 w-6" />
-              </button>
-              <button className="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors duration-200 flex items-center">
-                <div className="mr-3">
-                  <div className="text-xs">GET IT ON</div>
-                  <div className="text-lg font-bold">Google Play</div>
-                </div>
-                <Download className="h-6 w-6" />
-              </button>
-            </div>
           </div>
         </div>
       </div>

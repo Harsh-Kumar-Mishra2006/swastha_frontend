@@ -137,7 +137,6 @@ const ServiceCard = ({ image, title, description, index }: any) => {
 
 const PatientHeroPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
 
   // Mouse position tracking
   const mouseX = useMotionValue(0);
@@ -157,42 +156,6 @@ const PatientHeroPage = () => {
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [mouseX, mouseY]);
-
-  // Auto-rotate testimonials
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const testimonials = [
-    {
-      name: "Dr. Sarah Johnson",
-      role: "Cardiologist",
-      content:
-        "Swastha has revolutionized how I connect with patients. The platform is intuitive and secure.",
-      avatar: "👩‍⚕️",
-      rating: 5,
-    },
-    {
-      name: "Michael Chen",
-      role: "Patient",
-      content:
-        "Managing my health records has never been easier. I feel more in control of my healthcare journey.",
-      avatar: "👨",
-      rating: 5,
-    },
-    {
-      name: "Dr. Emily Williams",
-      role: "Pediatrician",
-      content:
-        "The telemedicine features are outstanding. My young patients love the interactive consultations.",
-      avatar: "👩‍⚕️",
-      rating: 5,
-    },
-  ];
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b to-cyan-400 from-lime-400 overflow-hidden">
@@ -457,78 +420,6 @@ const PatientHeroPage = () => {
                 description="Secure and accessible health data management"
                 index={3}
               />
-            </div>
-          </div>
-        </section>
-
-        {/* Testimonials Section */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              className="text-center mb-12"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                What People <span className="text-yellow-300">Say</span>
-              </h2>
-              <p className="text-xl text-white/80 max-w-3xl mx-auto">
-                Trusted by thousands of patients and healthcare providers
-              </p>
-            </motion.div>
-
-            <div className="relative h-64">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTestimonial}
-                  className="absolute inset-0"
-                  initial={{ opacity: 0, x: 100 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -100 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 max-w-3xl mx-auto">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="text-4xl">
-                        {testimonials[activeTestimonial].avatar}
-                      </div>
-                      <div>
-                        <h4 className="text-xl font-bold text-white">
-                          {testimonials[activeTestimonial].name}
-                        </h4>
-                        <p className="text-white/70">
-                          {testimonials[activeTestimonial].role}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-white/90 text-lg italic mb-4">
-                      "{testimonials[activeTestimonial].content}"
-                    </p>
-                    <div className="flex gap-1 text-yellow-300">
-                      {[...Array(testimonials[activeTestimonial].rating)].map(
-                        (_, i) => (
-                          <span key={i}>★</span>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            {/* Dots indicator */}
-            <div className="flex justify-center gap-2 mt-6">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    index === activeTestimonial ? "bg-white w-6" : "bg-white/50"
-                  }`}
-                  onClick={() => setActiveTestimonial(index)}
-                />
-              ))}
             </div>
           </div>
         </section>

@@ -10,7 +10,6 @@ import {
   Truck,
   Heart,
   ArrowRight,
-  Download,
 } from "lucide-react";
 
 const Footer = () => {
@@ -278,21 +277,6 @@ const Footer = () => {
                 </span>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Mobile Apps */}
-        <div className="mt-8 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="mb-4 md:mb-0">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Get the Swastha App
-              </h3>
-              <p className="text-gray-600">
-                Book appointments, track health records, and get exclusive
-                offers.
-              </p>
-            </div>
           </div>
         </div>
       </div>

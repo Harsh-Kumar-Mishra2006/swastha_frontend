@@ -30,7 +30,7 @@ const Navbar = () => {
 
   if (isAuthenticated && user?.role === "admin") {
     navLinks.push({ name: "Add Doctor", href: "/add-doctor" });
-  } else if (isAuthenticated && user?.role === "admin") {
+  } else if (isAuthenticated && user?.role === "doctor") {
     navLinks.push({
       name: "Active appointments",
       href: "/active-appointments",

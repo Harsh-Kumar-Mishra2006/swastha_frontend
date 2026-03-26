@@ -1,5 +1,4 @@
-// pages/OurDoctors.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import {
   Stethoscope,
@@ -12,10 +11,27 @@ import {
   Mail,
   ChevronLeft,
   ChevronRight,
+  Search,
+  Filter,
+  X,
+  Syringe,
+  Heart,
+  Brain,
+  Bone,
+  Eye,
+  Baby,
+  Microscope,
+  Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../../services/api";
+import {
+  specializationDiseases,
+  getAllSpecializations,
+  searchDiseases,
+  getAllDiseases,
+} from "../../data/specializationDiseases";
 
 interface Doctor {
   _id: string;
@@ -36,34 +52,83 @@ interface Doctor {
   totalPatients?: number;
 }
 
+interface FilterState {
+  type: "specialization" | "disease";
+  value: string;
+}
+
 const OurDoctors = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedSpecialization, setSelectedSpecialization] = useState("all");
+  const [_selectedDisease, setSelectedDisease] = useState("");
   const [specializations, setSpecializations] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [showDiseaseSuggestions, setShowDiseaseSuggestions] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterState>({
+    type: "specialization",
+    value: "all",
+  });
   const { isAuthenticated } = useAuth();
 
   const doctorsPerPage = 6;
   const navigate = useNavigate();
 
+  // Get all available specializations from backend or use from disease data
+  const allSpecializations = useMemo(() => {
+    if (specializations.length > 0) return specializations;
+    return getAllSpecializations();
+  }, [specializations]);
+
+  // All diseases list
+  const allDiseases = useMemo(() => getAllDiseases(), []);
+
   useEffect(() => {
     fetchDoctors();
   }, [currentPage, selectedSpecialization]);
 
+  // Handle disease search with debounce
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim()) {
+        const results = searchDiseases(searchQuery);
+        setSearchResults(results);
+        setShowDiseaseSuggestions(true);
+      } else {
+        setSearchResults([]);
+        setShowDiseaseSuggestions(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
   const fetchDoctors = async () => {
     try {
       setLoading(true);
-      // Use public API endpoint instead of admin
+
+      let specializationParam = selectedSpecialization;
+
+      // If filtering by disease, get matching specializations
+      if (activeFilter.type === "disease" && activeFilter.value !== "all") {
+        const matchingSpecializations = specializationDiseases
+          .filter((item) => item.disease === activeFilter.value)
+          .map((item) => item.specialization);
+
+        // If multiple specializations match, we need to handle this
+        // For now, let's use the first one or we can modify backend to accept multiple
+        specializationParam = matchingSpecializations[0] || "all";
+      }
+
       const response = await api.get("/public/doctors", {
         params: {
           page: currentPage,
           limit: doctorsPerPage,
           specialization:
-            selectedSpecialization !== "all"
-              ? selectedSpecialization
-              : undefined,
+            specializationParam !== "all" ? specializationParam : undefined,
         },
       });
 
@@ -78,6 +143,47 @@ const OurDoctors = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDiseaseSelect = (disease: string) => {
+    setSelectedDisease(disease);
+    setSearchQuery(disease);
+    setShowDiseaseSuggestions(false);
+    setActiveFilter({ type: "disease", value: disease });
+    setSelectedSpecialization("all");
+    setCurrentPage(1);
+
+    // Get matching specializations for this disease
+    const matchingSpecializations = specializationDiseases
+      .filter((item) => item.disease === disease)
+      .map((item) => item.specialization);
+
+    if (matchingSpecializations.length > 0) {
+      toast.success(
+        `Showing doctors for ${disease} (${matchingSpecializations.join(", ")})`,
+      );
+      // In a real implementation, you might want to fetch doctors with multiple specializations
+      fetchDoctors();
+    } else {
+      toast.error("No matching doctors found for this disease");
+    }
+  };
+
+  const handleSpecializationSelect = (spec: string) => {
+    setSelectedSpecialization(spec);
+    setActiveFilter({ type: "specialization", value: spec });
+    setSelectedDisease("");
+    setSearchQuery("");
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setSelectedSpecialization("all");
+    setSelectedDisease("");
+    setSearchQuery("");
+    setActiveFilter({ type: "specialization", value: "all" });
+    setCurrentPage(1);
+    toast.success("All filters cleared");
   };
 
   const handleBookAppointment = (doctorId: string) => {
@@ -109,6 +215,23 @@ const OurDoctors = () => {
     ];
     const index = name.length % colors.length;
     return colors[index];
+  };
+
+  const getSpecializationIcon = (specialization: string) => {
+    const icons: Record<string, any> = {
+      Cardiology: Heart,
+      Dermatology: Zap,
+      Neurology: Brain,
+      Orthopedics: Bone,
+      Pediatrics: Baby,
+      Ophthalmology: Eye,
+      Gynecology: Heart,
+      Dentistry: Stethoscope,
+      Psychiatry: Brain,
+      Gastroenterology: Microscope,
+    };
+    const Icon = icons[specialization] || Stethoscope;
+    return <Icon className="h-5 w-5" />;
   };
 
   if (loading && doctors.length === 0) {
@@ -145,32 +268,133 @@ const OurDoctors = () => {
           </p>
         </div>
 
-        {/* Filters */}
-        {specializations.length > 0 && (
-          <div className="mb-8 flex flex-wrap gap-4 justify-center">
+        {/* Enhanced Search Bar with Disease Filter */}
+        <div className="mb-8">
+          <div className="max-w-2xl mx-auto relative">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <input
+                type="text"
+                placeholder="Search by disease (e.g., Migraine, Heart Attack, Back Pain) or type your symptoms..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() =>
+                  searchQuery.trim() && setShowDiseaseSuggestions(true)
+                }
+                className="w-full pl-12 pr-12 py-4 rounded-2xl border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all shadow-lg bg-white"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setShowDiseaseSuggestions(false);
+                  }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Disease Suggestions Dropdown */}
+            {showDiseaseSuggestions && searchResults.length > 0 && (
+              <div className="absolute z-10 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-200 max-h-96 overflow-y-auto">
+                {searchResults.map((disease, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleDiseaseSelect(disease)}
+                    className="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors flex items-center space-x-3 border-b border-gray-100 last:border-0"
+                  >
+                    <Syringe className="h-5 w-5 text-teal-600" />
+                    <div>
+                      <p className="font-medium text-gray-900">{disease}</p>
+                      <p className="text-sm text-gray-500">
+                        See doctors specializing in {disease}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Active Filter Display */}
+        {activeFilter.value !== "all" && (
+          <div className="mb-6 flex justify-center">
+            <div className="bg-teal-100 rounded-full px-4 py-2 flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-teal-700" />
+              <span className="text-sm text-teal-700 font-medium">
+                {activeFilter.type === "disease"
+                  ? `Showing doctors for: ${activeFilter.value}`
+                  : `Specialization: ${activeFilter.value}`}
+              </span>
+              <button
+                onClick={clearFilters}
+                className="ml-2 p-1 hover:bg-teal-200 rounded-full transition-colors"
+              >
+                <X className="h-4 w-4 text-teal-700" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Disease Chips */}
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2 justify-center">
             <button
-              onClick={() => setSelectedSpecialization("all")}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                selectedSpecialization === "all"
+              onClick={() => {
+                if (activeFilter.value === "all") {
+                  clearFilters();
+                } else {
+                  clearFilters();
+                }
+              }}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                activeFilter.value === "all"
                   ? "bg-teal-600 text-white shadow-lg"
                   : "bg-white text-gray-700 hover:bg-teal-50"
               }`}
             >
               All Doctors
             </button>
-            {specializations.map((spec) => (
+            {allDiseases.slice(0, 8).map((disease) => (
               <button
-                key={spec}
-                onClick={() => setSelectedSpecialization(spec)}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
-                  selectedSpecialization === spec
+                key={disease}
+                onClick={() => handleDiseaseSelect(disease)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  activeFilter.type === "disease" &&
+                  activeFilter.value === disease
                     ? "bg-teal-600 text-white shadow-lg"
                     : "bg-white text-gray-700 hover:bg-teal-50"
                 }`}
               >
-                {spec}
+                {disease}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Specialization Filters */}
+        {allSpecializations.length > 0 && (
+          <div className="mb-8">
+            <div className="flex flex-wrap gap-3 justify-center">
+              {allSpecializations.map((spec) => (
+                <button
+                  key={spec}
+                  onClick={() => handleSpecializationSelect(spec)}
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center space-x-2 ${
+                    activeFilter.type === "specialization" &&
+                    activeFilter.value === spec
+                      ? "bg-teal-600 text-white shadow-lg"
+                      : "bg-white text-gray-700 hover:bg-teal-50"
+                  }`}
+                >
+                  {getSpecializationIcon(spec)}
+                  <span>{spec}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -181,7 +405,19 @@ const OurDoctors = () => {
             <h3 className="text-xl font-medium text-gray-900 mb-2">
               No Doctors Found
             </h3>
-            <p className="text-gray-600">Check back later for new doctors</p>
+            <p className="text-gray-600">
+              {activeFilter.value !== "all"
+                ? `No doctors available for ${activeFilter.value}. Try a different filter.`
+                : "Check back later for new doctors"}
+            </p>
+            {activeFilter.value !== "all" && (
+              <button
+                onClick={clearFilters}
+                className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -196,8 +432,9 @@ const OurDoctors = () => {
                     className={`bg-gradient-to-r ${getRandomColor(doctor.name)} p-6 text-white relative`}
                   >
                     <div className="absolute top-4 right-4">
-                      <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">
-                        {doctor.specialization}
+                      <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold flex items-center space-x-1">
+                        {getSpecializationIcon(doctor.specialization)}
+                        <span>{doctor.specialization}</span>
                       </span>
                     </div>
                     <div className="flex items-center space-x-4">

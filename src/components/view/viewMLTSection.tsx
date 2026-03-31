@@ -1,5 +1,5 @@
-// components/admin/ViewMLT.tsx
-import React, { useState, useEffect } from "react";
+// components/view/viewMLTSection.tsx
+import React, { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 import {
@@ -30,29 +30,39 @@ interface ViewMLTProps {
 const ViewMLT: React.FC<ViewMLTProps> = ({ onEdit, refreshTrigger = 0 }) => {
   const [mlts, setMLTs] = useState<MLT[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedMLT, setSelectedMLT] = useState<MLT | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [resettingPassword, setResettingPassword] = useState(false);
 
-  useEffect(() => {
-    fetchMLTs();
-  }, [refreshTrigger]);
-
-  const fetchMLTs = async () => {
+  const fetchMLTs = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
+      console.log("Fetching MLTs..."); // Debug log
       const response = await mltService.getAllMLTs();
+      console.log("MLT response:", response); // Debug log
+
       if (response.success) {
         setMLTs(response.data);
+        console.log("MLTs loaded:", response.data.length); // Debug log
+      } else {
+        setError("Failed to fetch MLTs");
       }
     } catch (error: any) {
+      console.error("Fetch MLTs error:", error);
+      setError(error.response?.data?.error || "Failed to fetch MLTs");
       toast.error(error.response?.data?.error || "Failed to fetch MLTs");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMLTs();
+  }, [fetchMLTs, refreshTrigger]); // Add refreshTrigger to dependencies
 
   const handleStatusToggle = async (mlt: MLT) => {
     const newStatus = mlt.status === "active" ? "inactive" : "active";
@@ -62,7 +72,7 @@ const ViewMLT: React.FC<ViewMLTProps> = ({ onEdit, refreshTrigger = 0 }) => {
         toast.success(
           `MLT ${newStatus === "active" ? "activated" : "deactivated"} successfully`,
         );
-        fetchMLTs();
+        fetchMLTs(); // Re-fetch after status change
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to update status");
@@ -76,7 +86,7 @@ const ViewMLT: React.FC<ViewMLTProps> = ({ onEdit, refreshTrigger = 0 }) => {
       const response = await mltService.deleteMLT(mlt._id, false);
       if (response.success) {
         toast.success("MLT deleted successfully");
-        fetchMLTs();
+        fetchMLTs(); // Re-fetch after delete
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to delete MLT");
@@ -136,8 +146,29 @@ const ViewMLT: React.FC<ViewMLTProps> = ({ onEdit, refreshTrigger = 0 }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="text-center py-12">
+          <div className="text-red-600 mb-4">
+            <XCircleIcon className="h-12 w-12 mx-auto" />
+          </div>
+          <p className="text-gray-600">{error}</p>
+          <button
+            onClick={fetchMLTs}
+            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -151,13 +182,37 @@ const ViewMLT: React.FC<ViewMLTProps> = ({ onEdit, refreshTrigger = 0 }) => {
           </div>
           <h2 className="text-2xl font-bold text-gray-900">MLT List</h2>
         </div>
-        <div className="text-sm text-gray-500">Total: {mlts.length} MLTs</div>
+        <div className="text-sm text-gray-500">
+          Total: {mlts.length} MLTs
+          <button
+            onClick={fetchMLTs}
+            className="ml-3 text-purple-600 hover:text-purple-800"
+            title="Refresh"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {mlts.length === 0 ? (
         <div className="text-center py-12">
           <Microscope className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500">No MLTs found</p>
+          <p className="text-sm text-gray-400 mt-2">
+            Click "Add New MLT" to add your first MLT
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -291,7 +346,7 @@ const ViewMLT: React.FC<ViewMLTProps> = ({ onEdit, refreshTrigger = 0 }) => {
         </div>
       )}
 
-      {/* Details Modal */}
+      {/* Details Modal (same as before) */}
       {showDetailsModal && selectedMLT && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -310,6 +365,7 @@ const ViewMLT: React.FC<ViewMLTProps> = ({ onEdit, refreshTrigger = 0 }) => {
 
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* All the detail fields */}
                 <div className="flex items-start space-x-3">
                   <UserIcon className="h-5 w-5 text-gray-400 mt-1" />
                   <div>
@@ -426,7 +482,7 @@ const ViewMLT: React.FC<ViewMLTProps> = ({ onEdit, refreshTrigger = 0 }) => {
         </div>
       )}
 
-      {/* Reset Password Modal */}
+      {/* Reset Password Modal (same as before) */}
       {showResetPasswordModal && selectedMLT && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">

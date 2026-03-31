@@ -13,6 +13,7 @@ const AdminMLT: React.FC = () => {
 
   const handleAddSuccess = () => {
     setShowAddForm(false);
+    // Increment refresh trigger to cause ViewMLT to re-fetch
     setRefreshTrigger((prev) => prev + 1);
   };
 
@@ -69,14 +70,20 @@ const AdminMLT: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* Main Content - Only render one component at a time */}
         {showAddForm ? (
           <AddMLT
             onSuccess={handleAddSuccess}
             onCancel={() => setShowAddForm(false)}
           />
         ) : (
-          <ViewMLT refreshTrigger={refreshTrigger} />
+          <ViewMLT
+            refreshTrigger={refreshTrigger}
+            onEdit={(mlt) => {
+              // Handle edit if needed
+              console.log("Edit MLT:", mlt);
+            }}
+          />
         )}
       </div>
     </div>

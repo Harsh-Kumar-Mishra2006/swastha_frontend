@@ -1,16 +1,29 @@
-// services/authService.ts (add this method)
+// services/authService.ts
 import api from './api';
 import { type LoginCredentials, type SignupData, type AuthResponse, type User } from '../types';
 
 class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post('/auth/login', credentials);
-    return response.data;
+    try {
+      const response = await api.post('/auth/login', credentials);
+      return response.data;
+    } catch (error: any) {
+      console.error('Login API error:', error.response?.data);
+      throw error;
+    }
   }
 
   async signup(data: SignupData): Promise<{ success: boolean; message: string; user?: User }> {
-    const response = await api.post('/auth/signup', data);
-    return response.data;
+    try {
+      console.log('Signup request data:', data); // Debug log
+      const response = await api.post('/auth/signup', data);
+      console.log('Signup response:', response.data); // Debug log
+      return response.data;
+    } catch (error: any) {
+      console.error('Signup API error:', error.response?.data);
+      console.error('Signup API error status:', error.response?.status);
+      throw error;
+    }
   }
 
   async logout(): Promise<void> {
@@ -32,8 +45,12 @@ class AuthService {
     return response.data;
   }
 
-  // New method to handle doctor login with password from Doctor model
-  async doctorLogin(email: string, password: string): Promise<AuthResponse> {
+  async checkMLTAuthorization(): Promise<any> {
+    const response = await api.get('/auth/check-mlt');
+    return response.data;
+  }
+
+  async mltLogin(email: string, password: string): Promise<AuthResponse> {
     const response = await api.post('/auth/login', { email, password });
     return response.data;
   }

@@ -2,7 +2,15 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { Stethoscope, Mail, User, AlertCircle } from "lucide-react";
+import {
+  Stethoscope,
+  Mail,
+  User,
+  AlertCircle,
+  Users,
+  Microscope,
+  Shield,
+} from "lucide-react";
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -11,8 +19,21 @@ const Login = () => {
     password: "",
   });
   const [loginMethod, setLoginMethod] = useState<"email" | "username">("email");
+  const [selectedRole, setSelectedRole] = useState<string>("patient");
   const [error, setError] = useState<string | null>(null);
   const { login, loading } = useAuth();
+
+  const roles = [
+    { value: "patient", label: "Patient", icon: Users, color: "bg-teal-500" },
+    { value: "doctor", label: "Doctor", icon: Users, color: "bg-blue-500" },
+    {
+      value: "MLT",
+      label: "Lab Technician",
+      icon: Microscope,
+      color: "bg-purple-500",
+    },
+    { value: "admin", label: "Admin", icon: Shield, color: "bg-red-500" },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +65,33 @@ const Login = () => {
           <p className="mt-2 text-center text-sm text-gray-600">
             Sign in to your account
           </p>
+        </div>
+
+        {/* Role Selection Cards */}
+        <div className="grid grid-cols-2 gap-3">
+          {roles.map((role) => (
+            <button
+              key={role.value}
+              type="button"
+              onClick={() => setSelectedRole(role.value)}
+              className={`p-3 rounded-xl border-2 transition-all ${
+                selectedRole === role.value
+                  ? "border-teal-500 bg-teal-50"
+                  : "border-gray-200 hover:border-teal-300"
+              }`}
+            >
+              <div className="flex flex-col items-center space-y-1">
+                <div className={`p-2 rounded-full ${role.color} bg-opacity-10`}>
+                  <role.icon
+                    className={`h-5 w-5 text-${role.color.replace("bg-", "")}`}
+                  />
+                </div>
+                <span className="text-xs font-medium text-gray-700">
+                  {role.label}
+                </span>
+              </div>
+            </button>
+          ))}
         </div>
 
         {error && (
@@ -154,7 +202,9 @@ const Login = () => {
               disabled={loading}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading
+                ? "Signing in..."
+                : `Sign in as ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`}
             </button>
           </div>
         </form>
@@ -173,8 +223,18 @@ const Login = () => {
 
         {/* Role-specific info */}
         <div className="mt-4 text-xs text-gray-500 text-center border-t pt-4">
-          <p>Doctor? Register and wait for admin approval</p>
-          <p className="mt-1">Admin? Contact system administrator for access</p>
+          {selectedRole === "doctor" && (
+            <p>Doctor? Register and wait for admin approval</p>
+          )}
+          {selectedRole === "MLT" && (
+            <p>Lab Technician? Register and wait for admin approval</p>
+          )}
+          {selectedRole === "admin" && (
+            <p>Admin? Contact system administrator for access</p>
+          )}
+          {selectedRole === "patient" && (
+            <p>Patient? Sign up now to book appointments</p>
+          )}
         </div>
       </div>
     </div>

@@ -2,7 +2,13 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import { Stethoscope, AlertCircle } from "lucide-react";
+import {
+  Stethoscope,
+  AlertCircle,
+  Microscope,
+  Users,
+  Shield,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 const Signup = () => {
@@ -13,13 +19,13 @@ const Signup = () => {
     phone: "",
     password: "",
     confirmPassword: "",
-    role: "patient" as "patient" | "doctor" | "admin",
+    role: "patient" as "patient" | "doctor" | "admin" | "MLT",
     age: "",
     gender: "",
     dob: "",
   });
   const [step, setStep] = useState(1);
-  const [doctorError, setDoctorError] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
   const { signup, loading } = useAuth();
 
   const handleChange = (
@@ -29,12 +35,13 @@ const Signup = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    // Clear doctor error when changing role
+    // Clear role error when changing role
     if (e.target.name === "role") {
-      setDoctorError(null);
+      setRoleError(null);
     }
   };
 
+  // Add this to your signup component to see detailed errors
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -61,13 +68,38 @@ const Signup = () => {
         dob: formData.dob || undefined,
       };
 
+      console.log("Submitting signup data:", signupData); // Debug log
+
       await signup(signupData);
-      // No need to navigate - signup will auto-login and redirect
     } catch (error: any) {
-      // Show specific error for doctors
-      if (error.response?.data?.error?.includes("contact admin")) {
-        setDoctorError(error.response.data.error);
+      console.error("Signup error details:", error.response?.data); // Debug log
+
+      // Show specific error based on response
+      if (error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Signup failed. Please check your information.");
       }
+
+      // Set role-specific error
+      if (error.response?.data?.error?.includes("contact admin")) {
+        setRoleError(error.response.data.error);
+      }
+    }
+  };
+
+  const getRoleMessage = (role: string) => {
+    switch (role) {
+      case "doctor":
+        return "Doctor accounts require admin verification. You can still register, but you'll need to wait for admin approval before accessing doctor features.";
+      case "MLT":
+        return "MLT accounts require admin verification. You can still register, but you'll need to wait for admin approval before accessing lab features.";
+      case "admin":
+        return "Admin accounts are restricted. Please contact the system administrator for access.";
+      default:
+        return null;
     }
   };
 
@@ -83,29 +115,81 @@ const Signup = () => {
           </h2>
         </div>
 
-        {/* Doctor Warning Message */}
-        {formData.role === "doctor" && (
+        {/* Role-specific Warning Message */}
+        {getRoleMessage(formData.role) && (
           <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
             <div className="flex">
               <AlertCircle className="h-5 w-5 text-blue-400" />
               <p className="ml-3 text-sm text-blue-700">
-                Doctor accounts require admin verification. You can still
-                register, but you'll need to wait for admin approval before
-                accessing doctor features.
+                {getRoleMessage(formData.role)}
               </p>
             </div>
           </div>
         )}
 
-        {/* Doctor Error Message */}
-        {doctorError && (
+        {/* Role-specific Error Message */}
+        {roleError && (
           <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
             <div className="flex">
               <AlertCircle className="h-5 w-5 text-red-400" />
-              <p className="ml-3 text-sm text-red-700">{doctorError}</p>
+              <p className="ml-3 text-sm text-red-700">{roleError}</p>
             </div>
           </div>
         )}
+
+        {/* Role Selection Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            {
+              value: "patient",
+              label: "Patient",
+              icon: Users,
+              color: "bg-teal-500",
+            },
+            {
+              value: "doctor",
+              label: "Doctor",
+              icon: Users,
+              color: "bg-blue-500",
+            },
+            {
+              value: "MLT",
+              label: "Lab Technician",
+              icon: Microscope,
+              color: "bg-purple-500",
+            },
+            {
+              value: "admin",
+              label: "Admin",
+              icon: Shield,
+              color: "bg-red-500",
+            },
+          ].map((role) => (
+            <button
+              key={role.value}
+              type="button"
+              onClick={() =>
+                setFormData({ ...formData, role: role.value as any })
+              }
+              className={`p-4 rounded-xl border-2 transition-all ${
+                formData.role === role.value
+                  ? "border-teal-500 bg-teal-50"
+                  : "border-gray-200 hover:border-teal-300"
+              }`}
+            >
+              <div className="flex flex-col items-center space-y-2">
+                <div className={`p-2 rounded-full ${role.color} bg-opacity-10`}>
+                  <role.icon
+                    className={`h-6 w-6 text-${role.color.replace("bg-", "")}`}
+                  />
+                </div>
+                <span className="text-sm font-medium text-gray-700">
+                  {role.label}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
 
         {/* Progress Steps */}
         <div className="flex justify-between items-center">
@@ -212,24 +296,6 @@ const Signup = () => {
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
                   placeholder="Confirm your password"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  I want to register as *
-                </label>
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                >
-                  <option value="patient">Patient</option>
-                  <option value="doctor">
-                    Doctor (requires admin approval)
-                  </option>
-                  <option value="admin">Admin</option>
-                </select>
               </div>
             </div>
           ) : (

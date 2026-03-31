@@ -1,3 +1,4 @@
+// pages/OurDoctors.tsx
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import {
@@ -12,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Shield,
   Filter,
   X,
   Syringe,
@@ -22,6 +24,9 @@ import {
   Baby,
   Microscope,
   Zap,
+  Lock,
+  UserCheck,
+  AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -72,10 +77,14 @@ const OurDoctors = () => {
     type: "specialization",
     value: "all",
   });
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const doctorsPerPage = 6;
   const navigate = useNavigate();
+
+  // Check if user is a patient
+  const isPatient = user?.role === "patient";
+  const canBookAppointment = isAuthenticated && isPatient;
 
   // Get all available specializations from backend or use from disease data
   const allSpecializations = useMemo(() => {
@@ -118,8 +127,6 @@ const OurDoctors = () => {
           .filter((item) => item.disease === activeFilter.value)
           .map((item) => item.specialization);
 
-        // If multiple specializations match, we need to handle this
-        // For now, let's use the first one or we can modify backend to accept multiple
         specializationParam = matchingSpecializations[0] || "all";
       }
 
@@ -153,7 +160,6 @@ const OurDoctors = () => {
     setSelectedSpecialization("all");
     setCurrentPage(1);
 
-    // Get matching specializations for this disease
     const matchingSpecializations = specializationDiseases
       .filter((item) => item.disease === disease)
       .map((item) => item.specialization);
@@ -162,7 +168,6 @@ const OurDoctors = () => {
       toast.success(
         `Showing doctors for ${disease} (${matchingSpecializations.join(", ")})`,
       );
-      // In a real implementation, you might want to fetch doctors with multiple specializations
       fetchDoctors();
     } else {
       toast.error("No matching doctors found for this disease");
@@ -192,6 +197,12 @@ const OurDoctors = () => {
       navigate("/login");
       return;
     }
+
+    if (!isPatient) {
+      toast.error("Only patients can book appointments");
+      return;
+    }
+
     navigate(`/book-appointment/${doctorId}`);
   };
 
@@ -234,6 +245,41 @@ const OurDoctors = () => {
     return <Icon className="h-5 w-5" />;
   };
 
+  // Role-based message for booking
+  const getBookingMessage = () => {
+    if (!isAuthenticated) {
+      return {
+        message: "Login to book appointment",
+        icon: Lock,
+        color: "bg-gray-500",
+      };
+    }
+    if (user?.role === "doctor") {
+      return {
+        message: "Doctors can't book appointments",
+        icon: UserCheck,
+        color: "bg-blue-500",
+      };
+    }
+    if (user?.role === "MLT") {
+      return {
+        message: "Lab technicians can't book appointments",
+        icon: Microscope,
+        color: "bg-purple-500",
+      };
+    }
+    if (user?.role === "admin") {
+      return {
+        message: "Admins can't book appointments",
+        icon: Shield,
+        color: "bg-red-500",
+      };
+    }
+    return null;
+  };
+
+  const bookingRestriction = getBookingMessage();
+
   if (loading && doctors.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-teal-50 to-emerald-50 pt-24 pb-12">
@@ -267,6 +313,32 @@ const OurDoctors = () => {
             professionals
           </p>
         </div>
+
+        {/* Role-based Info Banner */}
+        {!isPatient && isAuthenticated && (
+          <div className="mb-6 max-w-2xl mx-auto">
+            <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-lg">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-amber-400 mr-3" />
+                <p className="text-sm text-amber-700">
+                  You are logged in as a <strong>{user?.role}</strong>. Only
+                  patients can book appointments.
+                  {user?.role === "doctor" && (
+                    <span className="block text-xs mt-1">
+                      You can manage your appointments from your doctor
+                      dashboard.
+                    </span>
+                  )}
+                  {user?.role === "MLT" && (
+                    <span className="block text-xs mt-1">
+                      You can view lab test requests from your MLT dashboard.
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Enhanced Search Bar with Disease Filter */}
         <div className="mb-8">
@@ -343,13 +415,7 @@ const OurDoctors = () => {
         <div className="mb-8">
           <div className="flex flex-wrap gap-2 justify-center">
             <button
-              onClick={() => {
-                if (activeFilter.value === "all") {
-                  clearFilters();
-                } else {
-                  clearFilters();
-                }
-              }}
+              onClick={clearFilters}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 activeFilter.value === "all"
                   ? "bg-teal-600 text-white shadow-lg"
@@ -524,14 +590,36 @@ const OurDoctors = () => {
                       </div>
                     </div>
 
-                    {/* Book Appointment Button */}
-                    <button
-                      onClick={() => handleBookAppointment(doctor._id)}
-                      className="w-full mt-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white py-3 rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all transform group-hover:scale-[1.02] shadow-md hover:shadow-xl flex items-center justify-center space-x-2"
-                    >
-                      <Calendar className="h-5 w-5" />
-                      <span>Book Appointment</span>
-                    </button>
+                    {/* Book Appointment Button - Role Based */}
+                    {!canBookAppointment ? (
+                      <div className="relative group">
+                        <button
+                          disabled
+                          className="w-full mt-4 bg-gray-300 text-gray-500 py-3 rounded-xl font-semibold cursor-not-allowed flex items-center justify-center space-x-2"
+                        >
+                          {bookingRestriction?.icon && (
+                            <bookingRestriction.icon className="h-5 w-5" />
+                          )}
+                          <span>
+                            {bookingRestriction?.message ||
+                              "Cannot Book Appointment"}
+                          </span>
+                        </button>
+                        {!isAuthenticated && (
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            Please login to book appointments
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleBookAppointment(doctor._id)}
+                        className="w-full mt-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white py-3 rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all transform group-hover:scale-[1.02] shadow-md hover:shadow-xl flex items-center justify-center space-x-2"
+                      >
+                        <Calendar className="h-5 w-5" />
+                        <span>Book Appointment</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

@@ -1,4 +1,5 @@
-// contexts/AuthContext.tsx
+// contexts/AuthContext.tsx - Complete fixed version
+
 import React, {
   createContext,
   useState,
@@ -9,6 +10,7 @@ import { type User, type LoginCredentials, type SignupData } from "../types";
 import authService from "../services/authService";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { isAxiosError, getErrorMessage } from "../utils/errorHandler";
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +24,7 @@ interface AuthContextType {
   isDoctor: boolean;
   isPatient: boolean;
   isAdmin: boolean;
+  isMLT: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -35,6 +38,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Helper function to ensure user type safety
+  const ensureUserType = (userData: any): User => {
+    return {
+      ...userData,
+      role: userData.role as "patient" | "doctor" | "admin" | "MLT",
+    };
+  };
+
   // Load user from localStorage on mount
   useEffect(() => {
     const loadUser = async () => {
@@ -42,12 +53,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       const storedUser = localStorage.getItem("user");
 
       if (token && storedUser) {
-        setUser(JSON.parse(storedUser));
-        // Optionally refresh profile from server
         try {
+          const parsedUser = JSON.parse(storedUser);
+          const typedUser = ensureUserType(parsedUser);
+          setUser(typedUser);
+          // Optionally refresh profile from server
           await refreshProfile();
         } catch (error) {
-          console.error("Failed to refresh profile:", error);
+          console.error("Failed to load stored user:", error);
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
         }
       }
       setLoading(false);
@@ -62,25 +77,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       const response = await authService.login(credentials);
 
       if (response.success) {
+        const userData = ensureUserType(response.user);
+
         localStorage.setItem("token", response.data);
-        localStorage.setItem("user", JSON.stringify(response.user));
-        setUser(response.user);
+        localStorage.setItem("user", JSON.stringify(userData));
+        setUser(userData);
         toast.success(response.message || "Login successful!");
 
         // Redirect based on role
-        if (response.user.role === "patient") {
+        if (userData.role === "patient") {
           navigate("/patient/dashboard");
-        } else if (response.user.role === "doctor") {
+        } else if (userData.role === "doctor") {
           navigate("/doctor/dashboard");
-        } else if (response.user.role === "admin") {
+        } else if (userData.role === "admin") {
           navigate("/admin/dashboard");
+        } else if (userData.role === "MLT") {
+          navigate("/mlt/dashboard");
         } else {
           navigate("/");
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
-      toast.error(error.response?.data?.error || "Login failed");
+      const errorMessage = getErrorMessage(error);
+      toast.error(errorMessage || "Login failed");
       throw error;
     } finally {
       setLoading(false);
@@ -103,13 +123,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         await login(loginCredentials);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Signup error:", error);
-      const errorMessage =
-        error.response?.data?.error ||
-        error.response?.data?.message ||
-        "Signup failed";
-      toast.error(errorMessage);
+      const errorMessage = getErrorMessage(error);
+      toast.error(errorMessage || "Signup failed");
       throw error;
     } finally {
       setLoading(false);
@@ -133,19 +150,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const updateUser = (updatedUser: User) => {
-    setUser(updatedUser);
-    localStorage.setItem("user", JSON.stringify(updatedUser));
+    const typedUser = ensureUserType(updatedUser);
+    setUser(typedUser);
+    localStorage.setItem("user", JSON.stringify(typedUser));
   };
 
   const refreshProfile = async () => {
     try {
       const response = await authService.getProfile();
       if (response.success) {
-        setUser(response.user);
-        localStorage.setItem("user", JSON.stringify(response.user));
+        const userData = ensureUserType(response.user);
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to refresh profile:", error);
+      // If token is invalid, logout
+      if (isAxiosError(error) && error.response?.status === 401) {
+        await logout();
+      }
     }
   };
 
@@ -161,6 +184,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     isDoctor: user?.role === "doctor",
     isPatient: user?.role === "patient",
     isAdmin: user?.role === "admin",
+    isMLT: user?.role === "MLT",
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

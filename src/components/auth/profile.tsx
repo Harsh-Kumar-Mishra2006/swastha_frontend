@@ -22,8 +22,11 @@ import {
   XMarkIcon,
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
+  BeakerIcon,
+  ClipboardIcon,
 } from "@heroicons/react/24/outline";
 
+import { Microscope } from "lucide-react";
 // Schema for patient profile
 const patientProfileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -61,8 +64,26 @@ const doctorProfileSchema = z.object({
   }),
 });
 
+// Schema for MLT profile
+const mltProfileSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  profile: z.object({
+    bio: z.string().optional(),
+    specialization: z.string().min(2, "Specialization is required"),
+    qualifications: z.string().min(2, "Qualifications are required"),
+    experience: z.string().min(1, "Experience is required"),
+    licenseNumber: z.string().min(3, "License number is required"),
+    department: z.string().min(2, "Department is required"),
+    age: z.string().optional(),
+    gender: z.enum(["male", "female", "other", ""]).optional(),
+    address: z.string().optional(),
+  }),
+});
+
 type PatientFormData = z.infer<typeof patientProfileSchema>;
 type DoctorFormData = z.infer<typeof doctorProfileSchema>;
+type MLTFormData = z.infer<typeof mltProfileSchema>;
 
 const Profile: React.FC = () => {
   const { user, updateUser, logout, loading: authLoading } = useAuth();
@@ -110,11 +131,30 @@ const Profile: React.FC = () => {
     },
   });
 
+  // Form for MLT
+  const mltForm = useForm<MLTFormData>({
+    resolver: zodResolver(mltProfileSchema),
+    defaultValues: {
+      name: user?.name || "",
+      phone: user?.phone || "",
+      profile: {
+        bio: user?.profile?.bio || "",
+        specialization: user?.profile?.specialization || "",
+        qualifications: user?.profile?.qualifications || "",
+        experience: user?.profile?.experience || "",
+        licenseNumber: user?.profile?.licenseNumber || "",
+        department: user?.profile?.department || "",
+        age: user?.profile?.age || "",
+        gender: (user?.profile?.gender as any) || "",
+        address: user?.profile?.address || "",
+      },
+    },
+  });
+
   const onSubmitPatient = async (data: PatientFormData) => {
     try {
       setLoading(true);
 
-      // Clean the data - remove undefined values and handle emergency contact properly
       const cleanedData = {
         name: data.name,
         phone: data.phone,
@@ -144,6 +184,22 @@ const Profile: React.FC = () => {
   };
 
   const onSubmitDoctor = async (data: DoctorFormData) => {
+    try {
+      setLoading(true);
+      const response = await authService.updateProfile(data);
+      if (response.success) {
+        updateUser(response.user);
+        toast.success("Profile updated successfully");
+        setIsEditing(false);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to update profile");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onSubmitMLT = async (data: MLTFormData) => {
     try {
       setLoading(true);
       const response = await authService.updateProfile(data);
@@ -191,16 +247,51 @@ const Profile: React.FC = () => {
     );
   }
 
-  // Common header with logout button
+  const getRoleIcon = () => {
+    switch (user.role) {
+      case "MLT":
+        return <Microscope className="h-6 w-6 text-purple-600" />;
+      case "doctor":
+        return <BriefcaseIcon className="h-6 w-6 text-blue-600" />;
+      case "admin":
+        return <ShieldCheckIcon className="h-6 w-6 text-red-600" />;
+      default:
+        return <UserIcon className="h-6 w-6 text-teal-600" />;
+    }
+  };
+
   const ProfileHeader = () => (
     <div className="flex justify-between items-center mb-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          {user.role === "doctor" ? "Doctor Profile" : "My Profile"}
-        </h1>
+        <div className="flex items-center space-x-2">
+          {getRoleIcon()}
+          <h1 className="text-3xl font-bold text-gray-900">
+            {user.role === "doctor"
+              ? "Doctor Profile"
+              : user.role === "MLT"
+                ? "Lab Technician Profile"
+                : user.role === "admin"
+                  ? "Admin Profile"
+                  : "My Profile"}
+          </h1>
+        </div>
         <p className="text-sm text-gray-500 mt-1">
-          <ShieldCheckIcon className="h-4 w-4 inline mr-1 text-teal-600" />
-          {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Account
+          {user.role === "MLT" ? (
+            <>
+              <Microscope className="h-4 w-4 inline mr-1 text-purple-600" />{" "}
+              Medical Laboratory Technician Account
+            </>
+          ) : user.role === "doctor" ? (
+            <>
+              <BriefcaseIcon className="h-4 w-4 inline mr-1 text-blue-600" />{" "}
+              Medical Professional Account
+            </>
+          ) : (
+            <>
+              <ShieldCheckIcon className="h-4 w-4 inline mr-1 text-teal-600" />{" "}
+              {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Account
+            </>
+          )}
           {user.isVerified && (
             <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
               Verified
@@ -226,7 +317,6 @@ const Profile: React.FC = () => {
           )}
         </button>
 
-        {/* Logout Button */}
         <button
           onClick={() => setShowLogoutConfirm(true)}
           className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -238,7 +328,6 @@ const Profile: React.FC = () => {
     </div>
   );
 
-  // Logout Confirmation Modal
   const LogoutModal = () => {
     if (!showLogoutConfirm) return null;
 
@@ -276,7 +365,6 @@ const Profile: React.FC = () => {
         <LogoutModal />
 
         {isEditing ? (
-          // Edit Mode
           <form
             onSubmit={patientForm.handleSubmit(onSubmitPatient)}
             className="space-y-6"
@@ -414,7 +502,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Emergency Contact */}
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Emergency Contact
@@ -460,7 +547,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Submit Button */}
             <div className="flex justify-end">
               <button
                 type="submit"
@@ -482,9 +568,7 @@ const Profile: React.FC = () => {
             </div>
           </form>
         ) : (
-          // View Mode
           <div className="space-y-6">
-            {/* Profile Card */}
             <div className="bg-white shadow rounded-lg overflow-hidden">
               <div className="bg-teal-600 px-6 py-4">
                 <h2 className="text-xl font-semibold text-white">
@@ -596,7 +680,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Emergency Contact Card */}
             {user.profile?.emergencyContact && (
               <div className="bg-white shadow rounded-lg overflow-hidden">
                 <div className="bg-teal-600 px-6 py-4">
@@ -648,7 +731,6 @@ const Profile: React.FC = () => {
         <LogoutModal />
 
         {isEditing ? (
-          // Edit Mode
           <form
             onSubmit={doctorForm.handleSubmit(onSubmitDoctor)}
             className="space-y-6"
@@ -755,7 +837,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Professional Information */}
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Professional Information
@@ -832,7 +913,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Submit Button */}
             <div className="flex justify-end">
               <button
                 type="submit"
@@ -854,9 +934,7 @@ const Profile: React.FC = () => {
             </div>
           </form>
         ) : (
-          // View Mode
           <div className="space-y-6">
-            {/* Personal Information Card */}
             <div className="bg-white shadow rounded-lg overflow-hidden">
               <div className="bg-teal-600 px-6 py-4">
                 <h2 className="text-xl font-semibold text-white">
@@ -934,7 +1012,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Professional Information Card */}
             <div className="bg-white shadow rounded-lg overflow-hidden">
               <div className="bg-teal-600 px-6 py-4">
                 <h2 className="text-xl font-semibold text-white">
@@ -950,6 +1027,416 @@ const Profile: React.FC = () => {
                         <p className="text-sm text-gray-500">Specialization</p>
                         <p className="text-lg font-medium text-gray-900">
                           {user.profile?.specialization || "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <AcademicCapIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-gray-500">Qualifications</p>
+                        <p className="text-lg font-medium text-gray-900">
+                          {user.profile?.qualifications || "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <CalendarIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-gray-500">Experience</p>
+                        <p className="text-lg font-medium text-gray-900">
+                          {user.profile?.experience || "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {user.profile?.bio && (
+                    <div className="border-t pt-4">
+                      <div className="flex items-start space-x-3">
+                        <DocumentTextIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-gray-500">Bio</p>
+                          <p className="text-gray-700 mt-1">
+                            {user.profile.bio}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // MLT Profile View
+  if (user.role === "MLT") {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <ProfileHeader />
+        <LogoutModal />
+
+        {isEditing ? (
+          <form
+            onSubmit={mltForm.handleSubmit(onSubmitMLT)}
+            className="space-y-6"
+          >
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Personal Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    {...mltForm.register("name")}
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  {mltForm.formState.errors.name && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {mltForm.formState.errors.name.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={user.email}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    {...mltForm.register("phone")}
+                    type="tel"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  {mltForm.formState.errors.phone && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {mltForm.formState.errors.phone.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    value={user.username}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Age
+                  </label>
+                  <input
+                    {...mltForm.register("profile.age")}
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Enter your age"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Gender
+                  </label>
+                  <select
+                    {...mltForm.register("profile.gender")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Address
+                  </label>
+                  <textarea
+                    {...mltForm.register("profile.address")}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Enter your address"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Professional Information
+              </h2>
+              <div className="grid grid-cols-1 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Specialization *
+                  </label>
+                  <select
+                    {...mltForm.register("profile.specialization")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Select specialization</option>
+                    <option value="Hematology">Hematology</option>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Biochemistry">Biochemistry</option>
+                    <option value="Pathology">Pathology</option>
+                    <option value="Radiology">Radiology</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {mltForm.formState.errors.profile?.specialization && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {mltForm.formState.errors.profile.specialization.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Department *
+                  </label>
+                  <select
+                    {...mltForm.register("profile.department")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Select department</option>
+                    <option value="Clinical Lab">Clinical Lab</option>
+                    <option value="Pathology">Pathology</option>
+                    <option value="Radiology">Radiology</option>
+                    <option value="Blood Bank">Blood Bank</option>
+                    <option value="Microbiology">Microbiology</option>
+                  </select>
+                  {mltForm.formState.errors.profile?.department && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {mltForm.formState.errors.profile.department.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    License Number *
+                  </label>
+                  <input
+                    {...mltForm.register("profile.licenseNumber")}
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g., MLT12345"
+                  />
+                  {mltForm.formState.errors.profile?.licenseNumber && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {mltForm.formState.errors.profile.licenseNumber.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Qualifications *
+                  </label>
+                  <input
+                    {...mltForm.register("profile.qualifications")}
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g., B.Sc MLT, M.Sc Medical Lab Technology"
+                  />
+                  {mltForm.formState.errors.profile?.qualifications && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {mltForm.formState.errors.profile.qualifications.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Experience *
+                  </label>
+                  <input
+                    {...mltForm.register("profile.experience")}
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g., 5 years"
+                  />
+                  {mltForm.formState.errors.profile?.experience && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {mltForm.formState.errors.profile.experience.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bio
+                  </label>
+                  <textarea
+                    {...mltForm.register("profile.bio")}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Tell us about your expertise and experience in laboratory medicine..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex items-center px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckIcon className="h-5 w-5 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-6">
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="bg-purple-600 px-6 py-4">
+                <h2 className="text-xl font-semibold text-white">
+                  Personal Information
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-start space-x-3">
+                    <UserIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-500">Full Name</p>
+                      <p className="text-lg font-medium text-gray-900">
+                        {user.name}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3">
+                    <EnvelopeIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="text-lg font-medium text-gray-900">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3">
+                    <PhoneIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-500">Phone</p>
+                      <p className="text-lg font-medium text-gray-900">
+                        {user.phone}
+                      </p>
+                    </div>
+                  </div>
+
+                  {user.profile?.age && (
+                    <div className="flex items-start space-x-3">
+                      <CalendarIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-gray-500">Age</p>
+                        <p className="text-lg font-medium text-gray-900">
+                          {user.profile.age}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {user.profile?.gender && (
+                    <div className="flex items-start space-x-3">
+                      <UserIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-gray-500">Gender</p>
+                        <p className="text-lg font-medium text-gray-900 capitalize">
+                          {user.profile.gender}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {user.profile?.address && (
+                    <div className="flex items-start space-x-3 md:col-span-2">
+                      <UserIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-gray-500">Address</p>
+                        <p className="text-lg font-medium text-gray-900">
+                          {user.profile.address}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="bg-purple-600 px-6 py-4">
+                <h2 className="text-xl font-semibold text-white">
+                  Professional Information
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="flex items-start space-x-3">
+                      <Microscope className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-gray-500">Specialization</p>
+                        <p className="text-lg font-medium text-gray-900">
+                          {user.profile?.specialization || "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <BeakerIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-gray-500">Department</p>
+                        <p className="text-lg font-medium text-gray-900">
+                          {user.profile?.department || "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <ClipboardIcon className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-gray-500">License Number</p>
+                        <p className="text-lg font-medium text-gray-900">
+                          {user.profile?.licenseNumber || "Not specified"}
                         </p>
                       </div>
                     </div>

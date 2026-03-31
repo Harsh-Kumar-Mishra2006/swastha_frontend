@@ -5,7 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 
 interface RoleBasedRouteProps {
   children: React.ReactNode;
-  allowedRoles: Array<"patient" | "doctor" | "admin">;
+  allowedRoles: Array<"patient" | "doctor" | "admin" | "MLT">;
   fallbackPath?: string;
 }
 

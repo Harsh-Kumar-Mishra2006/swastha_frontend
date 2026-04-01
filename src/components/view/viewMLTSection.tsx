@@ -1,522 +1,406 @@
 // components/view/viewMLTSection.tsx
-import React, { useState, useEffect, useCallback } from "react";
-import { format } from "date-fns";
-import toast from "react-hot-toast";
+import { useState } from "react";
+import { useMLT } from "../../contexts/MLTContext";
 import {
-  PencilIcon,
-  TrashIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  UserIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  AcademicCapIcon,
-  BriefcaseIcon,
-  CalendarIcon,
-  DocumentTextIcon,
-  EyeIcon,
-  KeyIcon,
-} from "@heroicons/react/24/outline";
-import { Microscope } from "lucide-react";
-import mltService from "../../services/mltService";
-import { type MLT } from "../../types";
+  Search,
+  Trash2,
+  RefreshCw,
+  Key,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Mail,
+  Phone,
+  Microscope,
+} from "lucide-react";
+import toast from "react-hot-toast";
 
-interface ViewMLTProps {
-  onEdit?: (mlt: MLT) => void;
-  refreshTrigger?: number;
-}
+const ViewMLTSection = () => {
+  // Safely use the MLT context
+  let mlts: any[] = [];
+  let loading = false;
+  let updateMLTStatus: any = null;
+  let deleteMLT: any = null;
+  let resetMLTPassword: any = null;
+  let fetchMLTs: any = null;
 
-const ViewMLT: React.FC<ViewMLTProps> = ({ onEdit, refreshTrigger = 0 }) => {
-  const [mlts, setMLTs] = useState<MLT[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedMLT, setSelectedMLT] = useState<MLT | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  try {
+    const context = useMLT();
+    mlts = context.mlts;
+    loading = context.loading;
+    updateMLTStatus = context.updateMLTStatus;
+    deleteMLT = context.deleteMLT;
+    resetMLTPassword = context.resetMLTPassword;
+    fetchMLTs = context.fetchMLTs;
+  } catch (error) {
+    console.error("MLTContext not available in ViewMLTSection:", error);
+  }
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedMLT, setSelectedMLT] = useState<any>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
-  const [resettingPassword, setResettingPassword] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePermanent, setDeletePermanent] = useState(false);
 
-  const fetchMLTs = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log("Fetching MLTs..."); // Debug log
-      const response = await mltService.getAllMLTs();
-      console.log("MLT response:", response); // Debug log
+  const filteredMLTs = mlts.filter((mlt) => {
+    const matchesSearch =
+      mlt.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      mlt.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      mlt.specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      mlt.licenseNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
-      if (response.success) {
-        setMLTs(response.data);
-        console.log("MLTs loaded:", response.data.length); // Debug log
-      } else {
-        setError("Failed to fetch MLTs");
-      }
-    } catch (error: any) {
-      console.error("Fetch MLTs error:", error);
-      setError(error.response?.data?.error || "Failed to fetch MLTs");
-      toast.error(error.response?.data?.error || "Failed to fetch MLTs");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    const matchesStatus = statusFilter === "all" || mlt.status === statusFilter;
 
-  useEffect(() => {
-    fetchMLTs();
-  }, [fetchMLTs, refreshTrigger]); // Add refreshTrigger to dependencies
-
-  const handleStatusToggle = async (mlt: MLT) => {
-    const newStatus = mlt.status === "active" ? "inactive" : "active";
-    try {
-      const response = await mltService.updateMLTStatus(mlt._id, newStatus);
-      if (response.success) {
-        toast.success(
-          `MLT ${newStatus === "active" ? "activated" : "deactivated"} successfully`,
-        );
-        fetchMLTs(); // Re-fetch after status change
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to update status");
-    }
-  };
-
-  const handleDelete = async (mlt: MLT) => {
-    if (!confirm(`Are you sure you want to delete ${mlt.name}?`)) return;
-
-    try {
-      const response = await mltService.deleteMLT(mlt._id, false);
-      if (response.success) {
-        toast.success("MLT deleted successfully");
-        fetchMLTs(); // Re-fetch after delete
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to delete MLT");
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!selectedMLT) return;
-    if (!newPassword || newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-
-    try {
-      setResettingPassword(true);
-      const response = await mltService.resetMLTPassword(
-        selectedMLT._id,
-        newPassword,
-      );
-      if (response.success) {
-        toast.success("Password reset successfully");
-        setShowResetPasswordModal(false);
-        setNewPassword("");
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to reset password");
-    } finally {
-      setResettingPassword(false);
-    }
-  };
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <CheckCircleIcon className="h-3 w-3 mr-1" />
-            Active
+          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center">
+            <CheckCircle className="h-3 w-3 mr-1" /> Active
           </span>
         );
       case "inactive":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            <XCircleIcon className="h-3 w-3 mr-1" />
-            Inactive
+          <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center">
+            <XCircle className="h-3 w-3 mr-1" /> Inactive
+          </span>
+        );
+      case "pending":
+        return (
+          <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium flex items-center">
+            <Clock className="h-3 w-3 mr-1" /> Pending
           </span>
         );
       default:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            <ClockIcon className="h-3 w-3 mr-1" />
-            Pending
-          </span>
-        );
+        return null;
     }
   };
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-        </div>
-      </div>
-    );
-  }
+  const handleStatusChange = async (mltId: string, newStatus: string) => {
+    if (updateMLTStatus) {
+      await updateMLTStatus(mltId, newStatus);
+    }
+  };
 
-  if (error) {
+  const handlePasswordReset = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    if (resetMLTPassword && selectedMLT) {
+      await resetMLTPassword(selectedMLT._id, newPassword);
+      setShowPasswordModal(false);
+      setNewPassword("");
+      setSelectedMLT(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (deleteMLT && selectedMLT) {
+      await deleteMLT(selectedMLT._id, deletePermanent);
+      setShowDeleteModal(false);
+      setSelectedMLT(null);
+      setDeletePermanent(false);
+    }
+  };
+
+  if (!fetchMLTs) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div className="text-center py-12">
-          <div className="text-red-600 mb-4">
-            <XCircleIcon className="h-12 w-12 mx-auto" />
-          </div>
-          <p className="text-gray-600">{error}</p>
-          <button
-            onClick={fetchMLTs}
-            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            Try Again
-          </button>
+          <p className="text-red-600">Error: MLT service not available</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-purple-100 rounded-lg">
-            <Microscope className="h-6 w-6 text-purple-600" />
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Manage MLTs</h2>
+            <p className="text-sm text-gray-600">
+              View and manage all Medical Lab Technician accounts
+            </p>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">MLT List</h2>
-        </div>
-        <div className="text-sm text-gray-500">
-          Total: {mlts.length} MLTs
           <button
             onClick={fetchMLTs}
-            className="ml-3 text-purple-600 hover:text-purple-800"
-            title="Refresh"
+            className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
+            <RefreshCw className="h-5 w-5" />
           </button>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search MLTs by name, email, specialization, or license number..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
       </div>
 
-      {mlts.length === 0 ? (
-        <div className="text-center py-12">
-          <Microscope className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">No MLTs found</p>
-          <p className="text-sm text-gray-400 mt-2">
-            Click "Add New MLT" to add your first MLT
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+      {/* MLTs Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                MLT
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Contact
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Specialization
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Department
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                License
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Experience
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Added By
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {loading ? (
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Specialization
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Department
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  License
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <td colSpan={9} className="px-6 py-12 text-center">
+                  <div className="flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {mlts.map((mlt) => (
+            ) : filteredMLTs.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={9}
+                  className="px-6 py-12 text-center text-gray-500"
+                >
+                  No MLTs found
+                </td>
+              </tr>
+            ) : (
+              filteredMLTs.map((mlt) => (
                 <tr
                   key={mlt._id}
                   className="hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
-                        <UserIcon className="h-5 w-5 text-purple-600" />
+                      <div className="h-10 w-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {mlt.name.charAt(0)}
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
                           {mlt.name}
                         </div>
-                        <div className="text-sm text-gray-500">{mlt.email}</div>
+                        <div className="text-sm text-gray-500">
+                          @{mlt.username}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{mlt.phone}</div>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 flex items-center">
+                      <Mail className="h-3 w-3 mr-1 text-gray-400" />
+                      {mlt.email}
+                    </div>
+                    <div className="text-sm text-gray-500 flex items-center mt-1">
+                      <Phone className="h-3 w-3 mr-1 text-gray-400" />
+                      {mlt.phone}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900">
-                      {mlt.specialization}
-                    </span>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      <Microscope className="h-4 w-4 text-purple-500 mr-1" />
+                      <span className="text-sm text-gray-900">
+                        {mlt.specialization}
+                      </span>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4">
                     <span className="text-sm text-gray-900">
                       {mlt.department}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900">
+                  <td className="px-6 py-4">
+                    <span className="text-sm font-mono text-gray-900">
                       {mlt.licenseNumber}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(mlt.status)}
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-gray-900">
+                      {mlt.experience}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedMLT(mlt);
-                          setShowDetailsModal(true);
-                        }}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="View Details"
+                  <td className="px-6 py-4">{getStatusBadge(mlt.status)}</td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">
+                      {mlt.addedBy?.name || "Admin"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="relative inline-block text-left">
+                      <select
+                        onChange={(e) =>
+                          handleStatusChange(mlt._id, e.target.value)
+                        }
+                        value={mlt.status}
+                        className="mr-2 text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-purple-500"
                       >
-                        <EyeIcon className="h-5 w-5" />
-                      </button>
+                        <option value="active">Set Active</option>
+                        <option value="inactive">Set Inactive</option>
+                        <option value="pending">Set Pending</option>
+                      </select>
                       <button
                         onClick={() => {
                           setSelectedMLT(mlt);
-                          setShowResetPasswordModal(true);
+                          setShowPasswordModal(true);
                         }}
-                        className="text-yellow-600 hover:text-yellow-900"
+                        className="p-1 text-gray-400 hover:text-purple-600 transition-colors mr-1"
                         title="Reset Password"
                       >
-                        <KeyIcon className="h-5 w-5" />
+                        <Key className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleStatusToggle(mlt)}
-                        className={`${
-                          mlt.status === "active"
-                            ? "text-red-600 hover:text-red-900"
-                            : "text-green-600 hover:text-green-900"
-                        }`}
-                        title={
-                          mlt.status === "active" ? "Deactivate" : "Activate"
-                        }
-                      >
-                        {mlt.status === "active" ? (
-                          <XCircleIcon className="h-5 w-5" />
-                        ) : (
-                          <CheckCircleIcon className="h-5 w-5" />
-                        )}
-                      </button>
-                      {onEdit && (
-                        <button
-                          onClick={() => onEdit(mlt)}
-                          className="text-purple-600 hover:text-purple-900"
-                          title="Edit"
-                        >
-                          <PencilIcon className="h-5 w-5" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(mlt)}
-                        className="text-red-600 hover:text-red-900"
+                        onClick={() => {
+                          setSelectedMLT(mlt);
+                          setShowDeleteModal(true);
+                        }}
+                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                         title="Delete"
                       >
-                        <TrashIcon className="h-5 w-5" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {/* Details Modal (same as before) */}
-      {showDetailsModal && selectedMLT && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <Microscope className="h-6 w-6 text-purple-600" />
-                <h3 className="text-xl font-bold text-gray-900">MLT Details</h3>
-              </div>
+      {/* Password Reset Modal */}
+      {showPasswordModal && selectedMLT && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Reset Password
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Set new password for {selectedMLT.name}
+            </p>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password (min. 6 characters)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-4"
+              minLength={6}
+            />
+            <div className="flex justify-end space-x-3">
               <button
-                onClick={() => setShowDetailsModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setSelectedMLT(null);
+                  setNewPassword("");
+                }}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
               >
-                <XCircleIcon className="h-6 w-6 text-gray-500" />
+                Cancel
               </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* All the detail fields */}
-                <div className="flex items-start space-x-3">
-                  <UserIcon className="h-5 w-5 text-gray-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-gray-500">Full Name</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedMLT.name}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <EnvelopeIcon className="h-5 w-5 text-gray-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedMLT.email}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <PhoneIcon className="h-5 w-5 text-gray-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-gray-500">Phone</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedMLT.phone}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <AcademicCapIcon className="h-5 w-5 text-gray-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-gray-500">Specialization</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedMLT.specialization}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <BriefcaseIcon className="h-5 w-5 text-gray-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-gray-500">Department</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedMLT.department}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <DocumentTextIcon className="h-5 w-5 text-gray-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-gray-500">License Number</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedMLT.licenseNumber}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <AcademicCapIcon className="h-5 w-5 text-gray-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-gray-500">Qualifications</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedMLT.qualifications}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <BriefcaseIcon className="h-5 w-5 text-gray-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-gray-500">Experience</p>
-                    <p className="font-medium text-gray-900">
-                      {selectedMLT.experience}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <CalendarIcon className="h-5 w-5 text-gray-400 mt-1" />
-                  <div>
-                    <p className="text-sm text-gray-500">Joined</p>
-                    <p className="font-medium text-gray-900">
-                      {format(new Date(selectedMLT.createdAt), "PPP")}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {selectedMLT.bio && (
-                <div className="border-t pt-4">
-                  <div className="flex items-start space-x-3">
-                    <DocumentTextIcon className="h-5 w-5 text-gray-400 mt-1" />
-                    <div>
-                      <p className="text-sm text-gray-500">Bio</p>
-                      <p className="text-gray-700">{selectedMLT.bio}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedMLT.addedBy && (
-                <div className="border-t pt-4">
-                  <p className="text-sm text-gray-500">Added By</p>
-                  <p className="text-gray-700">
-                    {selectedMLT.addedBy.name} ({selectedMLT.addedBy.email})
-                  </p>
-                </div>
-              )}
+              <button
+                onClick={handlePasswordReset}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                Reset Password
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Reset Password Modal (same as before) */}
-      {showResetPasswordModal && selectedMLT && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Reset Password for {selectedMLT.name}
+      {/* Delete Modal */}
+      {showDeleteModal && selectedMLT && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Delete MLT
             </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Are you sure you want to delete {selectedMLT.name}?
+            </p>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                New Password
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={deletePermanent}
+                  onChange={(e) => setDeletePermanent(e.target.checked)}
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                />
+                <span className="ml-2 text-sm text-gray-600">
+                  Permanently delete (cannot be undone)
+                </span>
               </label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                placeholder="Enter new password (min. 6 characters)"
-              />
+              {!deletePermanent && (
+                <p className="mt-2 text-xs text-gray-500">
+                  MLT will be deactivated instead of permanently deleted.
+                </p>
+              )}
             </div>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => {
-                  setShowResetPasswordModal(false);
-                  setNewPassword("");
+                  setShowDeleteModal(false);
+                  setSelectedMLT(null);
+                  setDeletePermanent(false);
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
               >
                 Cancel
               </button>
               <button
-                onClick={handleResetPassword}
-                disabled={resettingPassword}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
-                {resettingPassword ? "Resetting..." : "Reset Password"}
+                {deletePermanent ? "Permanently Delete" : "Deactivate"}
               </button>
             </div>
           </div>
@@ -526,4 +410,4 @@ const ViewMLT: React.FC<ViewMLTProps> = ({ onEdit, refreshTrigger = 0 }) => {
   );
 };
 
-export default ViewMLT;
+export default ViewMLTSection;

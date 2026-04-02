@@ -166,3 +166,58 @@ export interface AuthResponse {
   };
   message: string;
 }
+// types/index.ts - Add these MLT types
+
+export interface MLTProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  specialization: string;
+  qualifications: string;
+  experience: string;
+  licenseNumber: string;
+  department: string;
+  status: string;
+  bio?: string;
+  createdAt?: string;
+  addedBy?: {
+    name: string;
+    email: string;
+  };
+}
+
+export interface MLT {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  username?: string;
+  specialization: string;
+  qualifications: string;
+  experience: string;
+  licenseNumber: string;
+  department: string;
+  bio: string;
+  status: 'active' | 'inactive' | 'pending';
+  addedBy: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+}
+
+export interface AddMLTData {
+  name: string;
+  email: string;
+  phone: string;
+  username: string;
+  password: string;
+  specialization: string;
+  qualifications: string;
+  experience: string;
+  licenseNumber: string;
+  department: string;
+  bio?: string;
+}

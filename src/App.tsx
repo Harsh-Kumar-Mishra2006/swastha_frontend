@@ -10,7 +10,7 @@ import OurDoctors from "./pages/OurDoctors/ourDoctors";
 import Payment from "./pages/payment/payment";
 import BookAppointment from "./pages/bookAppointments/bookAppointements";
 import MyAppointments from "./pages/myappointments/MyAppointments";
-import AddMLT from "./components/form/addMLTForm";
+import AdminMLTs from "./pages/addMLT/adminMLT";
 
 function App() {
   return (
@@ -31,7 +31,7 @@ function App() {
               element={<BookAppointment />}
             />
             <Route path="/my-appointments" element={<MyAppointments />} />
-            <Route path="/add-mlt" element={<AddMLT />} />
+            <Route path="/add-mlt" element={<AdminMLTs />} />
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Home />} />

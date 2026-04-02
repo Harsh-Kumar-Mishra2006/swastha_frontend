@@ -1,6 +1,6 @@
-// components/view/viewMLTSection.tsx
+// components/view/ViewMLTsSection.tsx
 import { useState } from "react";
-import { useMLT } from "../../contexts/MLTContext";
+import { useAdminMLT } from "../../contexts/AdminMLTContext";
 import {
   Search,
   Trash2,
@@ -11,38 +11,26 @@ import {
   Clock,
   Mail,
   Phone,
-  Microscope,
+  FlaskConical,
+  Building2,
+  IdCard,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-const ViewMLTSection = () => {
-  // Safely use the MLT context
-  let mlts: any[] = [];
-  let loading = false;
-  let updateMLTStatus: any = null;
-  let deleteMLT: any = null;
-  let resetMLTPassword: any = null;
-  let fetchMLTs: any = null;
-
-  try {
-    const context = useMLT();
-    mlts = context.mlts;
-    loading = context.loading;
-    updateMLTStatus = context.updateMLTStatus;
-    deleteMLT = context.deleteMLT;
-    resetMLTPassword = context.resetMLTPassword;
-    fetchMLTs = context.fetchMLTs;
-  } catch (error) {
-    console.error("MLTContext not available in ViewMLTSection:", error);
-  }
-
+const ViewMLTsSection = () => {
+  const { mlts, loading, updateMLTStatus, deleteMLT, resetMLTPassword } =
+    useAdminMLT();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [selectedMLT, setSelectedMLT] = useState<any>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePermanent, setDeletePermanent] = useState(false);
+
+  // Get unique departments for filter
+  const departments = ["all", ...new Set(mlts.map((mlt) => mlt.department))];
 
   const filteredMLTs = mlts.filter((mlt) => {
     const matchesSearch =
@@ -53,26 +41,29 @@ const ViewMLTSection = () => {
 
     const matchesStatus = statusFilter === "all" || mlt.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    const matchesDepartment =
+      departmentFilter === "all" || mlt.department === departmentFilter;
+
+    return matchesSearch && matchesStatus && matchesDepartment;
   });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
         return (
-          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center">
+          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center w-fit">
             <CheckCircle className="h-3 w-3 mr-1" /> Active
           </span>
         );
       case "inactive":
         return (
-          <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center">
+          <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center w-fit">
             <XCircle className="h-3 w-3 mr-1" /> Inactive
           </span>
         );
       case "pending":
         return (
-          <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium flex items-center">
+          <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium flex items-center w-fit">
             <Clock className="h-3 w-3 mr-1" /> Pending
           </span>
         );
@@ -82,9 +73,7 @@ const ViewMLTSection = () => {
   };
 
   const handleStatusChange = async (mltId: string, newStatus: string) => {
-    if (updateMLTStatus) {
-      await updateMLTStatus(mltId, newStatus);
-    }
+    await updateMLTStatus(mltId, newStatus);
   };
 
   const handlePasswordReset = async () => {
@@ -92,32 +81,18 @@ const ViewMLTSection = () => {
       toast.error("Password must be at least 6 characters");
       return;
     }
-    if (resetMLTPassword && selectedMLT) {
-      await resetMLTPassword(selectedMLT._id, newPassword);
-      setShowPasswordModal(false);
-      setNewPassword("");
-      setSelectedMLT(null);
-    }
+    await resetMLTPassword(selectedMLT._id, newPassword);
+    setShowPasswordModal(false);
+    setNewPassword("");
+    setSelectedMLT(null);
   };
 
   const handleDelete = async () => {
-    if (deleteMLT && selectedMLT) {
-      await deleteMLT(selectedMLT._id, deletePermanent);
-      setShowDeleteModal(false);
-      setSelectedMLT(null);
-      setDeletePermanent(false);
-    }
+    await deleteMLT(selectedMLT._id, deletePermanent);
+    setShowDeleteModal(false);
+    setSelectedMLT(null);
+    setDeletePermanent(false);
   };
-
-  if (!fetchMLTs) {
-    return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="text-center py-12">
-          <p className="text-red-600">Error: MLT service not available</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -127,11 +102,11 @@ const ViewMLTSection = () => {
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Manage MLTs</h2>
             <p className="text-sm text-gray-600">
-              View and manage all Medical Lab Technician accounts
+              View and manage all Medical Laboratory Technician accounts
             </p>
           </div>
           <button
-            onClick={fetchMLTs}
+            onClick={() => window.location.reload()}
             className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
           >
             <RefreshCw className="h-5 w-5" />
@@ -160,6 +135,17 @@ const ViewMLTSection = () => {
             <option value="pending">Pending</option>
             <option value="inactive">Inactive</option>
           </select>
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          >
+            {departments.map((dept) => (
+              <option key={dept} value={dept}>
+                {dept === "all" ? "All Departments" : dept}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -175,16 +161,10 @@ const ViewMLTSection = () => {
                 Contact
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Specialization
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Department
+                Professional Info
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 License
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Experience
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
@@ -200,7 +180,7 @@ const ViewMLTSection = () => {
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={9} className="px-6 py-12 text-center">
+                <td colSpan={7} className="px-6 py-12 text-center">
                   <div className="flex justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                   </div>
@@ -209,7 +189,7 @@ const ViewMLTSection = () => {
             ) : filteredMLTs.length === 0 ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={7}
                   className="px-6 py-12 text-center text-gray-500"
                 >
                   No MLTs found
@@ -231,7 +211,7 @@ const ViewMLTSection = () => {
                           {mlt.name}
                         </div>
                         <div className="text-sm text-gray-500">
-                          @{mlt.username}
+                          @{mlt.email.split("@")[0]}
                         </div>
                       </div>
                     </div>
@@ -247,27 +227,23 @@ const ViewMLTSection = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <Microscope className="h-4 w-4 text-purple-500 mr-1" />
-                      <span className="text-sm text-gray-900">
-                        {mlt.specialization}
-                      </span>
+                    <div className="text-sm text-gray-900 flex items-center">
+                      <FlaskConical className="h-3 w-3 mr-1 text-gray-400" />
+                      {mlt.specialization}
+                    </div>
+                    <div className="text-sm text-gray-500 flex items-center mt-1">
+                      <Building2 className="h-3 w-3 mr-1 text-gray-400" />
+                      {mlt.department}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {mlt.experience} exp • {mlt.qualifications}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm text-gray-900">
-                      {mlt.department}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-mono text-gray-900">
+                    <div className="text-sm text-gray-900 flex items-center">
+                      <IdCard className="h-3 w-3 mr-1 text-gray-400" />
                       {mlt.licenseNumber}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-900">
-                      {mlt.experience}
-                    </span>
+                    </div>
                   </td>
                   <td className="px-6 py-4">{getStatusBadge(mlt.status)}</td>
                   <td className="px-6 py-4">
@@ -410,4 +386,4 @@ const ViewMLTSection = () => {
   );
 };
 
-export default ViewMLTSection;
+export default ViewMLTsSection;

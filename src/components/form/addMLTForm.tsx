@@ -1,14 +1,14 @@
-// components/form/addMLTForm.tsx
+// components/form/AddMLTForm.tsx
 import React, { useState } from "react";
-import { useMLT } from "../../contexts/MLTContext";
+import { useAdminMLT } from "../../contexts/AdminMLTContext";
 import {
-  Plus,
   ChevronDown,
   ChevronUp,
   Eye,
   EyeOff,
   Check,
   Info,
+  FlaskConical,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -23,41 +23,40 @@ const AddMLTForm = () => {
     phone: "",
     password: "",
     confirmPassword: "",
-    specialization: "Hematology",
+    specialization: "",
     qualifications: "",
     experience: "",
     licenseNumber: "",
-    department: "Clinical Lab",
+    department: "",
     bio: "",
   });
 
-  // Safely use the MLT context
-  let addMLT: any = null;
-  let loading = false;
-
-  try {
-    const context = useMLT();
-    addMLT = context.addMLT;
-    loading = context.loading;
-  } catch (error) {
-    console.error("MLTContext not available in AddMLTForm:", error);
-  }
-
-  const specializations = [
-    "Hematology",
-    "Microbiology",
-    "Biochemistry",
-    "Pathology",
-    "Radiology",
-    "Other",
-  ];
+  const { addMLT, loading } = useAdminMLT();
 
   const departments = [
-    "Clinical Lab",
-    "Pathology",
-    "Radiology",
-    "Blood Bank",
+    "Clinical Biochemistry",
+    "Hematology",
     "Microbiology",
+    "Pathology",
+    "Immunology",
+    "Radiology",
+    "Nuclear Medicine",
+    "Blood Bank",
+    "Molecular Diagnostics",
+    "Toxicology",
+  ];
+
+  const specializations = [
+    "Medical Laboratory Technology",
+    "Clinical Laboratory Science",
+    "Histotechnology",
+    "Cytotechnology",
+    "Phlebotomy",
+    "Blood Banking",
+    "Clinical Chemistry",
+    "Hematology",
+    "Microbiology",
+    "Immunology",
   ];
 
   const handleChange = (
@@ -117,6 +116,12 @@ const AddMLTForm = () => {
       return false;
     }
 
+    // Validate license number
+    if (formData.licenseNumber.length < 3) {
+      toast.error("Please enter a valid license number");
+      return false;
+    }
+
     // Validate password
     if (formData.password.length < 6) {
       toast.error("Password must be at least 6 characters");
@@ -135,14 +140,9 @@ const AddMLTForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!addMLT) {
-      toast.error("MLT service not available. Please refresh the page.");
-      return;
-    }
-
     if (!validateForm()) return;
 
-    console.log("📝 Form data before submission:", {
+    console.log("📝 MLT Form data before submission:", {
       name: formData.name,
       email: formData.email,
       username: formData.username,
@@ -163,11 +163,11 @@ const AddMLTForm = () => {
         username: formData.username.trim().toLowerCase(),
         phone: formData.phone.trim(),
         password: formData.password,
-        specialization: formData.specialization,
+        specialization: formData.specialization.trim(),
         qualifications: formData.qualifications.trim(),
         experience: formData.experience.trim(),
-        licenseNumber: formData.licenseNumber.trim(),
-        department: formData.department,
+        licenseNumber: formData.licenseNumber.trim().toUpperCase(),
+        department: formData.department.trim(),
         bio: formData.bio?.trim() || undefined,
       };
 
@@ -186,18 +186,17 @@ const AddMLTForm = () => {
         phone: "",
         password: "",
         confirmPassword: "",
-        specialization: "Hematology",
+        specialization: "",
         qualifications: "",
         experience: "",
         licenseNumber: "",
-        department: "Clinical Lab",
+        department: "",
         bio: "",
       });
       setPasswordStrength(0);
       setIsExpanded(false);
     } catch (error: any) {
-      console.error("❌ Form submission error:", error);
-      // Error is already shown in context
+      console.error("❌ MLT Form submission error:", error);
     }
   };
 
@@ -222,12 +221,12 @@ const AddMLTForm = () => {
       >
         <div className="flex items-center space-x-3">
           <div className="bg-purple-100 p-2 rounded-lg">
-            <Plus className="h-5 w-5 text-purple-600" />
+            <FlaskConical className="h-5 w-5 text-purple-600" />
           </div>
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Add New MLT</h2>
             <p className="text-sm text-gray-600">
-              Create a new Medical Lab Technician account
+              Create a new Medical Laboratory Technician account
             </p>
           </div>
         </div>
@@ -249,7 +248,7 @@ const AddMLTForm = () => {
                 <p className="text-sm text-purple-700">
                   <span className="font-bold">Important:</span> The password you
                   set here will be used by the MLT to login. Make sure to share
-                  it securely with the technician.
+                  it securely with the MLT.
                 </p>
               </div>
             </div>
@@ -303,7 +302,7 @@ const AddMLTForm = () => {
                 value={formData.username}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="johnmlt"
+                placeholder="mltjohn"
                 required
               />
             </div>
@@ -415,6 +414,7 @@ const AddMLTForm = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 required
               >
+                <option value="">Select Specialization</option>
                 {specializations.map((spec) => (
                   <option key={spec} value={spec}>
                     {spec}
@@ -434,27 +434,13 @@ const AddMLTForm = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 required
               >
+                <option value="">Select Department</option>
                 {departments.map((dept) => (
                   <option key={dept} value={dept}>
                     {dept}
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                License Number <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="licenseNumber"
-                value={formData.licenseNumber}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="MLT12345"
-                required
-              />
             </div>
 
             <div>
@@ -467,7 +453,7 @@ const AddMLTForm = () => {
                 value={formData.qualifications}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="B.Sc MLT, M.Sc Medical Lab Technology"
+                placeholder="B.Sc MLT, M.Sc MLT"
                 required
               />
             </div>
@@ -487,9 +473,24 @@ const AddMLTForm = () => {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                License Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="licenseNumber"
+                value={formData.licenseNumber}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="MLT-2024-001"
+                required
+              />
+            </div>
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bio (Optional)
+                Bio
               </label>
               <textarea
                 name="bio"
@@ -497,7 +498,7 @@ const AddMLTForm = () => {
                 onChange={handleChange}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Tell us about the technician's expertise..."
+                placeholder="Tell us about the MLT's expertise and experience..."
               />
             </div>
           </div>

@@ -37,6 +37,7 @@ const Navbar = () => {
       href: "/active-appointments",
     });
     navLinks.push({ name: "View Patients", href: "/view-patients" });
+    navLinks.push({ name: "Add Report", href: "/add-report" });
   }
 
   useEffect(() => {

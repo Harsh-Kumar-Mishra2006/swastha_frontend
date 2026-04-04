@@ -89,14 +89,14 @@ const MyAppointments = () => {
           <div className="space-y-4">
             {appointments.map((apt) => (
               <div
-                key={apt._id}
+                key={apt.appointmentId}
                 className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow"
               >
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-xl font-bold text-gray-900">
-                        Dr. {apt.doctor.name}
+                        Dr. {apt.doctorName}
                       </h2>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(apt.status)}`}
@@ -131,7 +131,7 @@ const MyAppointments = () => {
                       </div>
                       <div className="flex items-center text-gray-600">
                         <IndianRupee className="h-4 w-4 mr-2 text-teal-600" />
-                        <span>₹{apt.doctor.consultationFee}</span>
+                        <span>₹{apt.consultationFee}</span>
                       </div>
                     </div>
 

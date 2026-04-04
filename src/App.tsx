@@ -11,6 +11,7 @@ import Payment from "./pages/payment/payment";
 import BookAppointment from "./pages/bookAppointments/bookAppointements";
 import MyAppointments from "./pages/myappointments/MyAppointments";
 import AdminMLTs from "./pages/addMLT/adminMLT";
+import AddReports from "./pages/AddReports/addReports";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             />
             <Route path="/my-appointments" element={<MyAppointments />} />
             <Route path="/add-mlt" element={<AdminMLTs />} />
+            <Route path="/add-report" element={<AddReports />} />
 
             {/* Catch all - redirect to home */}
             <Route path="*" element={<Home />} />

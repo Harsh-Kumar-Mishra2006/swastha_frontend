@@ -19,6 +19,9 @@ import {
   UserCircle,
   Heart,
   Microscope,
+  FlaskConical,
+  AlertCircle,
+  Flag,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -38,7 +41,13 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
   onSuccess,
   onCancel,
 }) => {
-  const { createReport, loading, getAvailableMLTs } = useTestReportData();
+  const {
+    createReport,
+    loading,
+    getAvailableMLTs,
+    availableMLTs,
+    assignToMLT,
+  } = useTestReportData();
   const [isExpanded, setIsExpanded] = useState(true);
   const [tests, setTests] = useState<Test[]>([
     { testName: "", testDescription: "", referenceRange: "", unit: "" },
@@ -60,6 +69,7 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
     doctorNotes: "",
     additionalNotes: "",
     priority: "normal" as "normal" | "urgent" | "emergency",
+    mltId: "", // ADDED: MLT assignment field
   });
 
   useEffect(() => {
@@ -122,6 +132,10 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
       toast.error("Please enter report description");
       return false;
     }
+    if (!formData.mltId) {
+      toast.error("Please select an MLT to assign this report");
+      return false;
+    }
 
     for (let i = 0; i < tests.length; i++) {
       if (!tests[i].testName.trim()) {
@@ -166,6 +180,11 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
       const result = await createReport(reportData);
 
       if (result) {
+        // If MLT is selected, assign the report
+        if (formData.mltId && result.reportId) {
+          await assignToMLT(result.reportId, formData.mltId);
+        }
+
         // Reset form
         setFormData({
           patientName: "",
@@ -179,6 +198,7 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
           doctorNotes: "",
           additionalNotes: "",
           priority: "normal",
+          mltId: "",
         });
         setTests([
           { testName: "", testDescription: "", referenceRange: "", unit: "" },
@@ -186,12 +206,16 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
         setIsExpanded(false);
 
         if (onSuccess) onSuccess();
-        toast.success("Test report created successfully!");
+        toast.success("Test report created and assigned successfully!");
       }
     } catch (error) {
       console.error("Error creating report:", error);
+      toast.error("Failed to create report");
     }
   };
+
+  // Get selected MLT details for display
+  const selectedMLT = availableMLTs.find((mlt) => mlt._id === formData.mltId);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -498,6 +522,58 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
               ))}
             </div>
 
+            {/* MLT Assignment Section - NEW */}
+            <div className="md:col-span-2 mt-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <FlaskConical className="h-5 w-5 mr-2 text-teal-600" />
+                Assign to MLT (Medical Lab Technician)
+              </h3>
+
+              <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-lg mb-4">
+                <div className="flex">
+                  <AlertCircle className="h-5 w-5 text-amber-400 mr-2 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-amber-700">
+                      <span className="font-bold">Important:</span> Select an
+                      MLT to process these tests. The report will be assigned to
+                      them immediately.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select MLT <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="mltId"
+                  value={formData.mltId}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">-- Select an MLT --</option>
+                  {availableMLTs.map((mlt) => (
+                    <option key={mlt._id} value={mlt._id}>
+                      {mlt.name} - {mlt.specialization} ({mlt.department})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedMLT && (
+                <div className="mt-3 p-3 bg-teal-50 rounded-lg">
+                  <p className="text-sm text-teal-800 flex items-center">
+                    <Mail className="h-4 w-4 mr-2" />
+                    Report will be sent to:{" "}
+                    <strong className="ml-1">{selectedMLT.name}</strong> (
+                    {selectedMLT.email})
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Additional Information */}
             <div className="md:col-span-2 mt-4">
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -521,10 +597,10 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Priority
               </label>
-              <div className="flex space-x-3">
+              <div className="flex space-x-4">
                 <label className="flex items-center space-x-2">
                   <input
                     type="radio"
@@ -534,7 +610,10 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
                     onChange={handleChange}
                     className="text-teal-600 focus:ring-teal-500"
                   />
-                  <span className="text-sm text-gray-700">Normal</span>
+                  <span className="text-sm text-gray-700 flex items-center">
+                    <Flag className="h-3 w-3 mr-1 text-gray-500" />
+                    Normal
+                  </span>
                 </label>
                 <label className="flex items-center space-x-2">
                   <input
@@ -545,7 +624,10 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
                     onChange={handleChange}
                     className="text-orange-600 focus:ring-orange-500"
                   />
-                  <span className="text-sm text-orange-700">Urgent</span>
+                  <span className="text-sm text-orange-700 flex items-center">
+                    <Flag className="h-3 w-3 mr-1 text-orange-500" />
+                    Urgent
+                  </span>
                 </label>
                 <label className="flex items-center space-x-2">
                   <input
@@ -556,7 +638,10 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
                     onChange={handleChange}
                     className="text-red-600 focus:ring-red-500"
                   />
-                  <span className="text-sm text-red-700">Emergency</span>
+                  <span className="text-sm text-red-700 flex items-center">
+                    <Flag className="h-3 w-3 mr-1 text-red-500" />
+                    Emergency
+                  </span>
                 </label>
               </div>
             </div>
@@ -581,12 +666,12 @@ const AddReportForm: React.FC<AddReportFormProps> = ({
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Creating...</span>
+                  <span>Creating & Assigning...</span>
                 </>
               ) : (
                 <>
                   <Send className="h-4 w-4" />
-                  <span>Create Report</span>
+                  <span>Create & Assign Report</span>
                 </>
               )}
             </button>

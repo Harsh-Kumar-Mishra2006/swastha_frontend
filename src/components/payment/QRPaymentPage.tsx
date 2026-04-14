@@ -6,7 +6,7 @@ import {
   QrCode,
   Copy,
   CheckCircle,
-  XCircle,
+  XCircle, // Added missing import
   Clock,
   AlertCircle,
   ArrowLeft,
@@ -72,8 +72,8 @@ const QRPaymentPage = () => {
   const fetchQRDetails = async () => {
     try {
       const response = await getQRPaymentDetails(appointmentId!);
-      if (response.success) {
-        setQrDetails(response.data);
+      if (response) {
+        setQrDetails(response);
       }
     } catch (error) {
       console.error("Error fetching QR details:", error);
@@ -86,14 +86,11 @@ const QRPaymentPage = () => {
   const checkExistingPayment = async () => {
     try {
       const response = await getPaymentStatus(appointmentId!);
-      if (response.success && response.data.paymentStatus === "paid") {
+      if (response && response.paymentStatus === "paid") {
         setPaymentStatus("success");
         toast.success("Payment already verified! Redirecting...");
         setTimeout(() => navigate("/my-appointments"), 3000);
-      } else if (
-        response.success &&
-        response.data.paymentStatus === "pending"
-      ) {
+      } else if (response && response.paymentStatus === "pending") {
         setPaymentStatus("submitted");
         toast("Payment already submitted, pending verification", {
           icon: "⏳",
@@ -149,7 +146,7 @@ const QRPaymentPage = () => {
         paymentTime || new Date().toISOString(),
       );
 
-      if (response.success) {
+      if (response && response.success) {
         setPaymentStatus("submitted");
         toast.success(response.message);
         // Clean up preview URL

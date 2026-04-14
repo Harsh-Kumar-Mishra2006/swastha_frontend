@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import PaymentPage from "../../components/payment/paymentPage";
+import PaymentPage from "../../components/payment/QRPaymentPage";
 
 const Payment = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();

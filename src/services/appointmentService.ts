@@ -70,6 +70,7 @@ class AppointmentService {
     });
     return response.data;
   }
+  
 }
 
 export default new AppointmentService();

@@ -37,7 +37,6 @@ const BookAppointmentForm = () => {
 
   const [doctor, setDoctor] = useState<DoctorInfo | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [_pendingAppointment, setPendingAppointment] = useState<any>(null);
   const [checkingSlot, setCheckingSlot] = useState(false);
 
   // Form states
@@ -163,10 +162,8 @@ const BookAppointmentForm = () => {
       });
 
       if (result) {
-        setPendingAppointment(result);
-
-        // Navigate to payment page
-        navigate(`/payment/${result.appointmentId}`, {
+        // Navigate to QR payment page
+        navigate(`/qr-payment/${result.appointmentId}`, {
           state: {
             appointmentDetails: result,
             doctor: doctor,
@@ -543,7 +540,7 @@ const BookAppointmentForm = () => {
                 <div>
                   <p className="text-sm text-blue-700">
                     <span className="font-bold">Payment Required:</span> You'll
-                    be redirected to payment after booking.
+                    be redirected to QR payment after booking.
                   </p>
                   <p className="text-xs text-blue-600 mt-1">
                     Total Amount: ₹
@@ -551,6 +548,10 @@ const BookAppointmentForm = () => {
                       Math.round(doctor.consultationFee * 0.02)}
                     (Consultation: ₹{doctor.consultationFee} + Convenience: ₹
                     {Math.round(doctor.consultationFee * 0.02)})
+                  </p>
+                  <p className="text-xs text-blue-600 mt-2">
+                    ⚠️ After payment, upload screenshot for verification.
+                    Appointment will be confirmed within 24 hours.
                   </p>
                 </div>
               </div>

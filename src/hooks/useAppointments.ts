@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import appointmentService from '../services/appointmentService';
 import toast from 'react-hot-toast';
-import { type AppointmentData, type DoctorBookingInfo } from '../types/appointments';
+import { type AppointmentData, type DoctorBookingInfo, type PendingAppointmentWithPayment } from '../types/appointments';
 
 export const useAppointment = () => {
   const [loading, setLoading] = useState(false);
@@ -60,6 +60,19 @@ export const useAppointment = () => {
     }
   };
 
+  const getPendingAppointmentWithPayment = async (appointmentId: string): Promise<PendingAppointmentWithPayment | null> => {
+    try {
+      setLoading(true);
+      const response = await appointmentService.getPendingAppointmentWithPayment(appointmentId);
+      return response.data;
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to fetch appointment details');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getConfirmedAppointment = async (appointmentId: string) => {
     try {
       setLoading(true);
@@ -73,10 +86,10 @@ export const useAppointment = () => {
     }
   };
 
-  const getMyAppointments = async (status?: string, page: number = 1) => {
+  const getMyAppointments = async (status?: string, page: number = 1, limit: number = 10) => {
     try {
       setLoading(true);
-      const response = await appointmentService.getMyAppointments(status, page);
+      const response = await appointmentService.getMyAppointments(status, page, limit);
       return response.data;
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to fetch appointments');
@@ -120,6 +133,7 @@ export const useAppointment = () => {
     checkAvailability,
     getDoctorBookingInfo,
     createPendingAppointment,
+    getPendingAppointmentWithPayment,
     getConfirmedAppointment,
     getMyAppointments,
     cancelAppointment,

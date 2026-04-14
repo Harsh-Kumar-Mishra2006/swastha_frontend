@@ -2,131 +2,200 @@
 import { useState } from 'react';
 import paymentService from '../services/paymentService';
 import toast from 'react-hot-toast';
-import { type PaymentOrderResponse, type PaymentStatus } from '../types/payment';
+import { type QRPaymentDetails, type PaymentStatus, type PaymentListItem } from '../types/payment';
 
 export const usePayment = () => {
   const [loading, setLoading] = useState(false);
-  const [paymentOrder, setPaymentOrder] = useState<PaymentOrderResponse | null>(null);
+  const [qrDetails, setQrDetails] = useState<QRPaymentDetails | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
+  const [payments, setPayments] = useState<PaymentListItem[]>([]);
 
-  const createPaymentOrder = async (appointmentId: string) => {
+  // Get QR code payment details
+  const getQRPaymentDetails = async (appointmentId: string): Promise<QRPaymentDetails | null> => {
     try {
       setLoading(true);
-      const response = await paymentService.createPaymentOrder(appointmentId);
+      const response = await paymentService.getQRPaymentDetails(appointmentId);
       
       if (response.success) {
-        setPaymentOrder(response.data);
-        toast.success('Payment order created! Redirecting to payment...', {
-          duration: 3000,
-        });
+        setQrDetails(response.data);
         return response.data;
       }
+      return null;
     } catch (error: any) {
-      if (error.response?.status === 400) {
-        if (error.response.data.error?.includes('expired')) {
-          toast.error('Appointment expired. Please book again.');
-        } else {
-          toast.error(error.response.data.error || 'Failed to create payment order');
-        }
-      } else {
-        toast.error('Failed to create payment order. Please try again.');
-      }
+      console.error('Error fetching QR details:', error);
+      toast.error(error.response?.data?.error || 'Failed to load payment details');
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const redirectToPayment = (paymentData: PaymentOrderResponse) => {
-    // Open Cashfree payment page
-    if (paymentData.cashfree.paymentLink) {
-      window.open(paymentData.cashfree.paymentLink, '_self');
-    } else {
-      toast.error('Payment link not available');
+  // Upload payment screenshot
+  const uploadPaymentScreenshot = async (
+    appointmentId: string,
+    screenshot: File,
+    transactionId: string,
+    transactionReference?: string,
+    paymentTime?: string
+  ) => {
+    try {
+      setLoading(true);
+      const response = await paymentService.uploadPaymentScreenshot(
+        appointmentId,
+        screenshot,
+        transactionId,
+        transactionReference,
+        paymentTime
+      );
+      
+      if (response.success) {
+        toast.success(response.message, {
+          duration: 5000,
+          icon: '📸',
+        });
+        return response;
+      }
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || 'Failed to upload payment proof';
+      toast.error(errorMsg);
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const checkPaymentStatus = async (orderId: string) => {
+  // Get payment status by appointment ID
+  const getPaymentStatus = async (appointmentId: string): Promise<PaymentStatus | null> => {
     try {
-      const response = await paymentService.getPaymentStatus(orderId);
+      setLoading(true);
+      const response = await paymentService.getPaymentStatus(appointmentId);
+      
       if (response.success) {
         setPaymentStatus(response.data);
         return response.data;
       }
-    } catch (error: any) {
-      console.error('Error checking payment status:', error);
       return null;
+    } catch (error: any) {
+      console.error('Error fetching payment status:', error);
+      // Don't show toast for 404 (no payment found)
+      if (error.response?.status !== 404) {
+        toast.error(error.response?.data?.error || 'Failed to fetch payment status');
+      }
+      return null;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const pollPaymentStatus = (orderId: string, onSuccess?: () => void) => {
-    let attempts = 0;
-    const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds
-    
-    const interval = setInterval(async () => {
-      attempts++;
-      
-      const status = await checkPaymentStatus(orderId);
-      
-      if (status?.paymentStatus === 'paid') {
-        clearInterval(interval);
-        toast.success('Payment successful! Your appointment is confirmed.', {
-          duration: 5000,
-          icon: '✅',
-        });
-        if (onSuccess) onSuccess();
-      } else if (status?.paymentStatus === 'failed') {
-        clearInterval(interval);
-        toast.error('Payment failed. Please try again.');
-      } else if (attempts >= maxAttempts) {
-        clearInterval(interval);
-        toast.error('Payment verification timeout. Please check your appointments.');
-      }
-    }, 2000); // Check every 2 seconds
-
-    return () => clearInterval(interval);
-  };
-
-  const getMyPayments = async (page: number = 1) => {
+  // Get all payments for patient
+  const getMyPayments = async (page: number = 1, limit: number = 10) => {
     try {
       setLoading(true);
-      const response = await paymentService.getMyPayments(page);
-      return response.data;
+      const response = await paymentService.getMyPayments(page, limit);
+      
+      if (response.success) {
+        setPayments(response.data);
+        return response;
+      }
+      return null;
     } catch (error: any) {
-      toast.error('Failed to fetch payment history');
+      toast.error(error.response?.data?.error || 'Failed to fetch payment history');
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadReceipt = async (appointmentId: string) => {
+  // Poll payment status (for manual verification status)
+  const pollPaymentStatus = (
+    appointmentId: string, 
+    onVerified?: () => void,
+    onRejected?: () => void,
+    intervalTime: number = 5000 // Check every 5 seconds
+  ) => {
+    let attempts = 0;
+    const maxAttempts = 720; // 720 attempts * 5 seconds = 60 minutes
+    
+    const interval = setInterval(async () => {
+      attempts++;
+      
+      const status = await getPaymentStatus(appointmentId);
+      
+      if (status?.paymentStatus === 'paid') {
+        clearInterval(interval);
+        toast.success('Payment verified! Your appointment is confirmed.', {
+          duration: 5000,
+          icon: '✅',
+        });
+        if (onVerified) onVerified();
+      } else if (status?.paymentStatus === 'rejected') {
+        clearInterval(interval);
+        toast.error('Payment verification failed. Please contact support.', {
+          duration: 5000,
+        });
+        if (onRejected) onRejected();
+      } else if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        toast.loading('Verification taking longer than expected. You will be notified via email.', {
+          duration: 5000,
+        });
+      }
+    }, intervalTime);
+
+    return () => clearInterval(interval);
+  };
+
+  // Reset states
+  const resetPaymentState = () => {
+    setQrDetails(null);
+    setPaymentStatus(null);
+  };
+
+  // Admin: Get pending payments
+  const getPendingPayments = async (page: number = 1, limit: number = 20) => {
     try {
       setLoading(true);
-      await paymentService.openPaymentReceipt(appointmentId);
-      toast.success('Payment receipt opened', { icon: '📄' });
+      const response = await paymentService.getPendingPayments(page, limit);
+      return response;
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to download receipt');
+      toast.error(error.response?.data?.error || 'Failed to fetch pending payments');
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const resetPaymentOrder = () => {
-    setPaymentOrder(null);
-    setPaymentStatus(null);
+  // Admin: Verify payment
+  const verifyPayment = async (paymentId: string, action: 'approve' | 'reject', notes?: string) => {
+    try {
+      setLoading(true);
+      const response = await paymentService.verifyPayment(paymentId, { action, notes });
+      
+      if (response.success) {
+        toast.success(response.message);
+        return response;
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to verify payment');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
     loading,
-    paymentOrder,
+    qrDetails,
     paymentStatus,
-    createPaymentOrder,
-    redirectToPayment,
-    checkPaymentStatus,
-    pollPaymentStatus,
+    payments,
+    getQRPaymentDetails,
+    uploadPaymentScreenshot,
+    getPaymentStatus,
     getMyPayments,
-    downloadReceipt,
-    resetPaymentOrder
+    pollPaymentStatus,
+    resetPaymentState,
+    // Admin methods
+    getPendingPayments,
+    verifyPayment
   };
 };

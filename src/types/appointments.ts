@@ -113,3 +113,30 @@ export interface UploadedReport {
   fileType: string;
   uploadedAt: string;
 }
+
+// types/appointment.ts
+// Add this interface
+
+export interface PendingAppointmentWithPayment {
+  appointmentId: string;
+  appointmentIdDisplay: string;
+  doctor: {
+    name: string;
+    specialization: string;
+    consultationFee: number;
+  };
+  appointmentDate: string;
+  appointmentTime: {
+    slot: string;
+    duration: number;
+  };
+  reasonForVisit: string;
+  paymentDetails: {
+    consultationFee: number;
+    convenienceFee: number;
+    totalAmount: number;
+    status: 'not_started' | 'pending' | 'paid' | 'rejected';
+    paymentId?: string;
+  };
+  expiresAt: string;
+}

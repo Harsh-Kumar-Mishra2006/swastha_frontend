@@ -1,4 +1,5 @@
 // types/appointment.ts
+
 export interface DoctorBookingInfo {
   doctorId: string;
   doctorName: string;
@@ -30,6 +31,30 @@ export interface PendingAppointmentResponse {
   consultationFee: number;
   convenienceFee: number;
   totalAmount: number;
+  expiresAt: string;
+}
+
+export interface PendingAppointmentWithPayment {
+  appointmentId: string;
+  appointmentIdDisplay: string;
+  doctor: {
+    name: string;
+    specialization: string;
+    consultationFee: number;
+  };
+  appointmentDate: string;
+  appointmentTime: {
+    slot: string;
+    duration: number;
+  };
+  reasonForVisit: string;
+  paymentDetails: {
+    consultationFee: number;
+    convenienceFee: number;
+    totalAmount: number;
+    status: 'not_started' | 'pending' | 'paid' | 'rejected';
+    paymentId?: string;
+  };
   expiresAt: string;
 }
 
@@ -79,4 +104,12 @@ export interface AppointmentListResponse {
     total: number;
     pages: number;
   };
+}
+
+// Report upload
+export interface UploadedReport {
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  uploadedAt: string;
 }

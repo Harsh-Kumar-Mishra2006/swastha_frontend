@@ -1,6 +1,13 @@
 // services/appointmentService.ts
 import api from './api';
-import { type AppointmentData, } from '../types/appointments';
+import type { 
+  AppointmentData,
+  PendingAppointmentResponse,
+  PendingAppointmentWithPayment,
+  ConfirmedAppointment,
+  AppointmentListResponse,
+  UploadedReport
+} from '../types/appointments';
 
 class AppointmentService {
   // Check doctor availability for a specific slot
@@ -18,19 +25,25 @@ class AppointmentService {
   }
 
   // Create pending appointment (before payment)
-  async createPendingAppointment(appointmentData: AppointmentData) {
+  async createPendingAppointment(appointmentData: AppointmentData): Promise<{ success: boolean; data: PendingAppointmentResponse }> {
     const response = await api.post('/appointments/create-pending', appointmentData);
     return response.data;
   }
 
+  // Get pending appointment with payment details
+  async getPendingAppointmentWithPayment(appointmentId: string): Promise<{ success: boolean; data: PendingAppointmentWithPayment }> {
+    const response = await api.get(`/appointments/pending-payment/${appointmentId}`);
+    return response.data;
+  }
+
   // Get confirmed appointment details after payment
-  async getConfirmedAppointment(appointmentId: string) {
+  async getConfirmedAppointment(appointmentId: string): Promise<{ success: boolean; data: ConfirmedAppointment }> {
     const response = await api.get(`/appointments/confirmed/${appointmentId}`);
     return response.data;
   }
 
   // Get all appointments for patient
-  async getMyAppointments(status?: string, page: number = 1, limit: number = 10) {
+  async getMyAppointments(status?: string, page: number = 1, limit: number = 10): Promise<AppointmentListResponse> {
     const response = await api.get('/appointments/my-appointments', {
       params: { status, page, limit }
     });
@@ -38,25 +51,23 @@ class AppointmentService {
   }
 
   // Cancel appointment (no refund)
-  async cancelAppointment(appointmentId: string) {
+  async cancelAppointment(appointmentId: string): Promise<{ success: boolean; message: string }> {
     const response = await api.put(`/appointments/cancel/${appointmentId}`);
     return response.data;
   }
 
   // Upload medical reports
-  async uploadReports(appointmentId: string, files: File[]) {
+  async uploadReports(appointmentId: string, files: File[]): Promise<{ success: boolean; data: { reports: UploadedReport[] } }> {
     const formData = new FormData();
     files.forEach(file => {
       formData.append('reports', file);
     });
 
-    const response = await api.post(`/appointments/upload-reports/${appointmentId}`, 
-      formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
+    const response = await api.post(`/appointments/upload-reports/${appointmentId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   }
 }

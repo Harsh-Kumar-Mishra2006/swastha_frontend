@@ -103,8 +103,9 @@ export const useAppointment = () => {
     try {
       setLoading(true);
       const response = await appointmentService.cancelAppointment(appointmentId);
+      // Fix: response has message property directly
       toast.success(response.message || 'Appointment cancelled successfully');
-      return response.data;
+      return response;
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to cancel appointment');
       throw error;
@@ -117,6 +118,7 @@ export const useAppointment = () => {
     try {
       setLoading(true);
       const response = await appointmentService.uploadReports(appointmentId, files);
+      // Fix: response has message property directly
       toast.success(response.message || 'Reports uploaded successfully');
       return response.data;
     } catch (error: any) {

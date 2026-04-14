@@ -6,8 +6,9 @@ import type {
   PendingAppointmentWithPayment,
   ConfirmedAppointment,
   AppointmentListResponse,
-  UploadedReport
-} from '../types/appointments';
+  UploadReportsResponse,
+  CancelAppointmentResponse
+} from '../types/appointments';  // Fixed: changed from 'appointments' to 'appointment'
 
 class AppointmentService {
   // Check doctor availability for a specific slot
@@ -51,13 +52,13 @@ class AppointmentService {
   }
 
   // Cancel appointment (no refund)
-  async cancelAppointment(appointmentId: string): Promise<{ success: boolean; message: string }> {
+  async cancelAppointment(appointmentId: string): Promise<CancelAppointmentResponse> {
     const response = await api.put(`/appointments/cancel/${appointmentId}`);
     return response.data;
   }
 
   // Upload medical reports
-  async uploadReports(appointmentId: string, files: File[]): Promise<{ success: boolean; data: { reports: UploadedReport[] } }> {
+  async uploadReports(appointmentId: string, files: File[]): Promise<UploadReportsResponse> {
     const formData = new FormData();
     files.forEach(file => {
       formData.append('reports', file);
@@ -70,7 +71,6 @@ class AppointmentService {
     });
     return response.data;
   }
-  
 }
 
 export default new AppointmentService();

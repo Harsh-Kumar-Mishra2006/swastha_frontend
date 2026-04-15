@@ -38,6 +38,7 @@ const BookAppointmentForm = () => {
   const [doctor, setDoctor] = useState<DoctorInfo | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [checkingSlot, setCheckingSlot] = useState(false);
+  const { loading, checkAvailability, createPendingAppointment, uploadReports } = useAppointment();
 
   // Form states
   const [appointmentDetails, setAppointmentDetails] = useState({
@@ -161,16 +162,28 @@ const BookAppointmentForm = () => {
         additionalNotes: appointmentDetails.additionalNotes,
       });
 
-      if (result) {
-        // Navigate to QR payment page
-        navigate(`/qr-payment/${result.appointmentId}`, {
-          state: {
-            appointmentDetails: result,
-            doctor: doctor,
-            fromBooking: true,
-          },
-        });
-      }
+      // Then in handleSubmitAppointment, after successful creation:
+if (result) {
+  // Upload reports if any
+  if (selectedFiles.length > 0) {
+    try {
+      await uploadReports(result.appointmentId, selectedFiles);
+    } catch (error) {
+      console.error("Error uploading reports:", error);
+      // Don't block navigation, just show warning
+      toast.error("Failed to upload reports, but appointment created");
+    }
+  }
+  
+  // Navigate to QR payment page
+  navigate(`/qr-payment/${result.appointmentId}`, {
+    state: {
+      appointmentDetails: result,
+      doctor: doctor,
+      fromBooking: true,
+    },
+  });
+}
     } catch (error: any) {
       console.error("Error booking appointment:", error);
       if (error.response?.status === 400) {

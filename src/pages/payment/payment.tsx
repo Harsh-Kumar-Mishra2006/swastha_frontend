@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import PaymentPage from "../../components/payment/QRPaymentPage";
+import QRPaymentPage from "../../components/payment/QRPaymentPage";
 
 const Payment = () => {
   const { appointmentId } = useParams<{ appointmentId: string }>();
@@ -16,7 +16,7 @@ const Payment = () => {
     );
   }
 
-  return <PaymentPage />;
+  return <QRPaymentPage />;
 };
 
 export default Payment;

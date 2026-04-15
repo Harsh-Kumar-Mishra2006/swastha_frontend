@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { usePayment } from "../../hooks/usePayment";
+import { type QRPaymentDetails } from '../../types/payment';
 import {
   QrCode,
   Copy,
@@ -26,7 +27,7 @@ const QRPaymentPage = () => {
   const { getQRPaymentDetails, uploadPaymentScreenshot, getPaymentStatus } =
     usePayment();
 
-  const [qrDetails, setQrDetails] = useState<any>(null);
+  const [qrDetails, setQrDetails] = useState<QRPaymentDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string>("pending");
@@ -55,19 +56,25 @@ const QRPaymentPage = () => {
 
     // Timer for appointment expiry
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          toast.error("Appointment expired. Please book again.");
-          navigate("/doctors");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    setTimeLeft((prev) => {
+      if (prev <= 1) {
+        clearInterval(timer);
+        toast.error("Appointment expired. Please book again.");
+        navigate("/doctors");
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
 
-    return () => clearInterval(timer);
-  }, [appointmentId]);
+  return () => {
+    clearInterval(timer);
+    // Also cleanup preview URL
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+  };
+}, [appointmentId, navigate]); // Add navigate to deps
 
   const fetchQRDetails = async () => {
     try {

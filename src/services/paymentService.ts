@@ -11,12 +11,12 @@ import type {
 
 class PaymentService {
   // Get QR code payment details
-  async getQRPaymentDetails(appointmentId: string): Promise<{ success: boolean; data: QRPaymentDetails }> {
-    const response = await api.get('/payments/qr-details', {
-      params: { appointmentId }
-    });
-    return response.data;
-  }
+  async getQRPaymentDetails(appointmentId: string) {
+  const response = await api.get('/payments/qr-details', {
+    params: { appointmentId }
+  });
+  return response.data;
+}
 
   // Upload payment screenshot
   async uploadPaymentScreenshot(
@@ -37,11 +37,7 @@ class PaymentService {
       formData.append('paymentTime', paymentTime);
     }
 
-    const response = await api.post('/payments/upload-screenshot', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post(`/payments/upload-screenshot/${appointmentId}`, formData);
     return response.data;
   }
 

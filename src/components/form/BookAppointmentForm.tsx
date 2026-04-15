@@ -54,17 +54,17 @@ const BookAppointmentForm = () => {
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      toast.error("Please login to book an appointment");
-      navigate("/login");
-      return;
-    }
-
-    if (doctorId) {
-      fetchDoctorDetails();
-    }
-  }, [doctorId, isAuthenticated]);
+  // BookAppointmentForm.tsx - Line 44
+useEffect(() => {
+  if (!isAuthenticated) {
+    toast.error("Please login to book an appointment");
+    navigate("/login");
+    return;
+  }
+  if (doctorId) {
+    fetchDoctorDetails();
+  }
+}, [doctorId, isAuthenticated, navigate]); // Add navigate
 
   const fetchDoctorDetails = async () => {
     try {

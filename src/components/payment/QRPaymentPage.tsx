@@ -2,12 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { usePayment } from "../../hooks/usePayment";
-import { type QRPaymentDetails } from '../../types/payment';
 import {
   QrCode,
   Copy,
   CheckCircle,
-  XCircle, // Added missing import
+  XCircle,
   Clock,
   AlertCircle,
   ArrowLeft,
@@ -17,6 +16,7 @@ import {
   FileText,
   Loader,
   Info,
+  Home,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -27,11 +27,12 @@ const QRPaymentPage = () => {
   const { getQRPaymentDetails, uploadPaymentScreenshot, getPaymentStatus } =
     usePayment();
 
-  const [qrDetails, setQrDetails] = useState<QRPaymentDetails | null>(null);
+  const [qrDetails, setQrDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string>("pending");
   const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes in seconds
+  const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Form states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -47,7 +48,7 @@ const QRPaymentPage = () => {
   useEffect(() => {
     if (!appointmentId) {
       toast.error("Invalid appointment");
-      navigate("/appointments");
+      navigate("/");
       return;
     }
 
@@ -56,25 +57,27 @@ const QRPaymentPage = () => {
 
     // Timer for appointment expiry
     const timer = setInterval(() => {
-    setTimeLeft((prev) => {
-      if (prev <= 1) {
-        clearInterval(timer);
-        toast.error("Appointment expired. Please book again.");
-        navigate("/doctors");
-        return 0;
-      }
-      return prev - 1;
-    });
-  }, 1000);
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          toast.error("Appointment expired. Please book again.");
+          navigate("/doctors");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-  return () => {
-    clearInterval(timer);
-    // Also cleanup preview URL
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-  };
-}, [appointmentId, navigate]); // Add navigate to deps
+    return () => {
+      clearInterval(timer);
+      if (redirectTimer) {
+        clearTimeout(redirectTimer);
+      }
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [appointmentId]);
 
   const fetchQRDetails = async () => {
     try {
@@ -95,8 +98,14 @@ const QRPaymentPage = () => {
       const response = await getPaymentStatus(appointmentId!);
       if (response && response.paymentStatus === "paid") {
         setPaymentStatus("success");
-        toast.success("Payment already verified! Redirecting...");
-        setTimeout(() => navigate("/my-appointments"), 3000);
+        toast.success("Payment already verified! Redirecting to home...");
+        
+        // Redirect to home after 3 seconds
+        const timer = setTimeout(() => {
+          navigate("/");
+        }, 3000);
+        setRedirectTimer(timer);
+        
       } else if (response && response.paymentStatus === "pending") {
         setPaymentStatus("submitted");
         toast("Payment already submitted, pending verification", {
@@ -156,10 +165,17 @@ const QRPaymentPage = () => {
       if (response && response.success) {
         setPaymentStatus("submitted");
         toast.success(response.message);
+        
         // Clean up preview URL
         if (previewUrl) {
           URL.revokeObjectURL(previewUrl);
         }
+        
+        // Auto redirect to home after 5 seconds on successful submission
+        const timer = setTimeout(() => {
+          navigate("/");
+        }, 5000);
+        setRedirectTimer(timer);
       }
     } catch (error: any) {
       console.error("Error uploading payment:", error);
@@ -190,17 +206,26 @@ const QRPaymentPage = () => {
             </div>
 
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Payment Verified! 🎉
+              Appointment Confirmed! 🎉
             </h2>
-            <p className="text-gray-600 mb-8">
-              Your payment has been verified and appointment is confirmed. A
-              confirmation has been sent to your email.
+            <p className="text-gray-600 mb-4">
+              Your payment has been verified and appointment is confirmed.
+            </p>
+            <p className="text-sm text-gray-500 mb-8">
+              Redirecting to home page in a few seconds...
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
+                onClick={() => navigate("/")}
+                className="px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Home className="h-5 w-5" />
+                Go to Home
+              </button>
+              <button
                 onClick={() => navigate("/my-appointments")}
-                className="px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors"
+                className="px-6 py-3 border-2 border-teal-600 text-teal-600 rounded-lg font-semibold hover:bg-teal-50 transition-colors"
               >
                 View My Appointments
               </button>
@@ -229,9 +254,11 @@ const QRPaymentPage = () => {
             <p className="text-gray-600 mb-4">
               Your payment screenshot has been received.
             </p>
-            <p className="text-gray-600 mb-8">
-              Our team will verify your payment within 24 hours. You will
-              receive a confirmation email once verified.
+            <p className="text-gray-600 mb-4">
+              Our team will verify your payment within 24 hours.
+            </p>
+            <p className="text-sm text-gray-500 mb-8">
+              Redirecting to home page in a few seconds...
             </p>
 
             <div className="bg-blue-50 rounded-lg p-4 mb-8 text-left">
@@ -251,12 +278,21 @@ const QRPaymentPage = () => {
               </div>
             </div>
 
-            <button
-              onClick={() => navigate("/my-appointments")}
-              className="px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors"
-            >
-              Go to My Appointments
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => navigate("/")}
+                className="px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Home className="h-5 w-5" />
+                Go to Home
+              </button>
+              <button
+                onClick={() => navigate("/my-appointments")}
+                className="px-6 py-3 border-2 border-teal-600 text-teal-600 rounded-lg font-semibold hover:bg-teal-50 transition-colors"
+              >
+                View My Appointments
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -330,7 +366,6 @@ const QRPaymentPage = () => {
                     alt="Payment QR Code"
                     className="w-64 h-64 object-contain"
                     onError={(e) => {
-                      // Fallback if image doesn't exist
                       (e.target as HTMLImageElement).src =
                         "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='3' y1='9' x2='21' y2='9'%3E%3C/line%3E%3Cline x1='3' y1='15' x2='21' y2='15'%3E%3C/line%3E%3Cline x1='9' y1='21' x2='9' y2='9'%3E%3C/line%3E%3C/svg%3E";
                     }}

@@ -1,7 +1,6 @@
 // services/paymentService.ts
 import api from './api';
 import type { 
-  QRPaymentDetails, 
   UploadPaymentResponse, 
   PaymentStatus,
   PaymentListResponse,
@@ -68,6 +67,83 @@ class PaymentService {
     const response = await api.put(`/payments/admin/verify-payment/${paymentId}`, data);
     return response.data;
   }
+
+  // Add these methods to your existing PaymentService class
+
+// Download payment receipt
+async downloadPaymentReceipt(appointmentId: string): Promise<void> {
+  try {
+    const response = await api.get(`/payments/receipt/${appointmentId}`, {
+      responseType: 'blob'
+    });
+    
+    // Create blob and download
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `payment_receipt_${appointmentId}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+    toast.success('Receipt downloaded successfully');
+  } catch (error: any) {
+    console.error('Error downloading receipt:', error);
+    toast.error(error.response?.data?.error || 'Failed to download receipt');
+    throw error;
+  }
+}
+
+// Open payment receipt in new tab
+async openPaymentReceipt(appointmentId: string): Promise<void> {
+  try {
+    const response = await api.get(`/payments/receipt/${appointmentId}`, {
+      responseType: 'blob'
+    });
+    
+    // Create blob and open in new tab
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    
+    toast.success('Opening receipt...');
+  } catch (error: any) {
+    console.error('Error opening receipt:', error);
+    toast.error(error.response?.data?.error || 'Failed to open receipt');
+    throw error;
+  }
+}
+
+// Generate appointment slip (client-side HTML)
+async generateAppointmentSlip(appointmentId: string): Promise<void> {
+  try {
+    const response = await api.get(`/appointments/confirmed/${appointmentId}`);
+    const appointment = response.data.data;
+    
+    // Generate HTML content
+    const htmlContent = generateAppointmentSlipHTML(appointment);
+    
+    // Create blob and download
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `appointment_slip_${appointmentId}.html`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+    toast.success('Appointment slip downloaded');
+  } catch (error: any) {
+    console.error('Error generating appointment slip:', error);
+    toast.error(error.response?.data?.error || 'Failed to generate appointment slip');
+    throw error;
+  }
+}
 }
 
 export default new PaymentService();

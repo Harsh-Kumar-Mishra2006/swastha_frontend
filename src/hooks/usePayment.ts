@@ -183,6 +183,45 @@ export const usePayment = () => {
     }
   };
 
+  // Add these to your existing usePayment hook
+
+const downloadPaymentReceipt = async (appointmentId: string) => {
+  try {
+    setLoading(true);
+    await paymentService.downloadPaymentReceipt(appointmentId);
+  } catch (error) {
+    console.error('Error downloading receipt:', error);
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
+
+const openPaymentReceipt = async (appointmentId: string) => {
+  try {
+    setLoading(true);
+    await paymentService.openPaymentReceipt(appointmentId);
+  } catch (error) {
+    console.error('Error opening receipt:', error);
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
+
+const generateAppointmentSlip = async (appointmentId: string) => {
+  try {
+    setLoading(true);
+    await paymentService.generateAppointmentSlip(appointmentId);
+  } catch (error) {
+    console.error('Error generating appointment slip:', error);
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
+
+
   return {
     loading,
     qrDetails,
@@ -196,6 +235,9 @@ export const usePayment = () => {
     resetPaymentState,
     // Admin methods
     getPendingPayments,
-    verifyPayment
+    verifyPayment,
+    downloadPaymentReceipt,  // Add this
+    openPaymentReceipt,       // Add this
+    generateAppointmentSlip
   };
 };

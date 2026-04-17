@@ -32,7 +32,7 @@ const QRPaymentPage = () => {
   const [uploading, setUploading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string>("pending");
   const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes in seconds
-  const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null);
+  const [redirectTimer, setRedirectTimer] = useState<number | null>(null);
 
   // Form states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -99,13 +99,12 @@ const QRPaymentPage = () => {
       if (response && response.paymentStatus === "paid") {
         setPaymentStatus("success");
         toast.success("Payment already verified! Redirecting to home...");
-        
+
         // Redirect to home after 3 seconds
         const timer = setTimeout(() => {
           navigate("/");
         }, 3000);
         setRedirectTimer(timer);
-        
       } else if (response && response.paymentStatus === "pending") {
         setPaymentStatus("submitted");
         toast("Payment already submitted, pending verification", {
@@ -165,12 +164,12 @@ const QRPaymentPage = () => {
       if (response && response.success) {
         setPaymentStatus("submitted");
         toast.success(response.message);
-        
+
         // Clean up preview URL
         if (previewUrl) {
           URL.revokeObjectURL(previewUrl);
         }
-        
+
         // Auto redirect to home after 5 seconds on successful submission
         const timer = setTimeout(() => {
           navigate("/");

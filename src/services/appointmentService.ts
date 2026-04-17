@@ -44,12 +44,58 @@ class AppointmentService {
   }
 
   // Get all appointments for patient
-  async getMyAppointments(status?: string, page: number = 1, limit: number = 10): Promise<AppointmentListResponse> {
-    const response = await api.get('/appointments/my-appointments', {
-      params: { status, page, limit }
-    });
-    return response.data;
+  // Get all appointments for patient
+// Get all appointments for patient
+async getMyAppointments(status?: string, page: number = 1, limit: number = 10): Promise<AppointmentListResponse> {
+  const response = await api.get('/appointments/my-appointments', {
+    params: { status, page, limit }
+  });
+  
+  // Normalize the response to always have data, pagination, and success
+  let normalizedResponse: AppointmentListResponse;
+  
+  // If response.data is already an array
+  if (Array.isArray(response.data)) {
+    normalizedResponse = {
+      success: true,
+      data: response.data,
+      pagination: {
+        page: page,
+        limit: limit,
+        total: response.data.length,
+        pages: Math.ceil(response.data.length / limit)
+      }
+    };
+  } 
+  // If response.data has data and pagination
+  else if (response.data && typeof response.data === 'object') {
+    normalizedResponse = {
+      success: response.data.success !== undefined ? response.data.success : true,
+      data: response.data.data || [],
+      pagination: response.data.pagination || {
+        page: page,
+        limit: limit,
+        total: 0,
+        pages: 1
+      }
+    };
+  } 
+  // Fallback
+  else {
+    normalizedResponse = {
+      success: false,
+      data: [],
+      pagination: {
+        page: page,
+        limit: limit,
+        total: 0,
+        pages: 1
+      }
+    };
   }
+  
+  return normalizedResponse;
+}
 
   // Cancel appointment (no refund)
   async cancelAppointment(appointmentId: string): Promise<CancelAppointmentResponse> {

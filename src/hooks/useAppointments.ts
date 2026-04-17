@@ -87,17 +87,26 @@ export const useAppointment = () => {
   };
 
   const getMyAppointments = async (status?: string, page: number = 1, limit: number = 10) => {
-    try {
-      setLoading(true);
-      const response = await appointmentService.getMyAppointments(status, page, limit);
-      return response.data;
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to fetch appointments');
-      throw error;
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+    const response = await appointmentService.getMyAppointments(status, page, limit);
+    
+    // Now response has success, data, and pagination
+    if (response.success) {
+      return {
+        data: response.data,
+        pagination: response.pagination
+      };
+    } else {
+      throw new Error('Failed to fetch appointments');
     }
-  };
+  } catch (error: any) {
+    toast.error(error.response?.data?.error || 'Failed to fetch appointments');
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
 
   const cancelAppointment = async (appointmentId: string) => {
     try {

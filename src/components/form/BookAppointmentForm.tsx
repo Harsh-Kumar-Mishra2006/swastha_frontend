@@ -32,13 +32,16 @@ const BookAppointmentForm = () => {
   const { doctorId } = useParams<{ doctorId: string }>();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const { loading, checkAvailability, createPendingAppointment } =
-    useAppointment();
+  const {
+    loading,
+    checkAvailability,
+    createPendingAppointment,
+    uploadReports,
+  } = useAppointment();
 
   const [doctor, setDoctor] = useState<DoctorInfo | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [checkingSlot, setCheckingSlot] = useState(false);
-  const { loading, checkAvailability, createPendingAppointment, uploadReports } = useAppointment();
 
   // Form states
   const [appointmentDetails, setAppointmentDetails] = useState({
@@ -55,16 +58,16 @@ const BookAppointmentForm = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   // BookAppointmentForm.tsx - Line 44
-useEffect(() => {
-  if (!isAuthenticated) {
-    toast.error("Please login to book an appointment");
-    navigate("/login");
-    return;
-  }
-  if (doctorId) {
-    fetchDoctorDetails();
-  }
-}, [doctorId, isAuthenticated, navigate]); // Add navigate
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast.error("Please login to book an appointment");
+      navigate("/login");
+      return;
+    }
+    if (doctorId) {
+      fetchDoctorDetails();
+    }
+  }, [doctorId, isAuthenticated, navigate]); // Add navigate
 
   const fetchDoctorDetails = async () => {
     try {
@@ -163,27 +166,27 @@ useEffect(() => {
       });
 
       // Then in handleSubmitAppointment, after successful creation:
-if (result) {
-  // Upload reports if any
-  if (selectedFiles.length > 0) {
-    try {
-      await uploadReports(result.appointmentId, selectedFiles);
-    } catch (error) {
-      console.error("Error uploading reports:", error);
-      // Don't block navigation, just show warning
-      toast.error("Failed to upload reports, but appointment created");
-    }
-  }
-  
-  // Navigate to QR payment page
-  navigate(`/qr-payment/${result.appointmentId}`, {
-    state: {
-      appointmentDetails: result,
-      doctor: doctor,
-      fromBooking: true,
-    },
-  });
-}
+      if (result) {
+        // Upload reports if any
+        if (selectedFiles.length > 0) {
+          try {
+            await uploadReports(result.appointmentId, selectedFiles);
+          } catch (error) {
+            console.error("Error uploading reports:", error);
+            // Don't block navigation, just show warning
+            toast.error("Failed to upload reports, but appointment created");
+          }
+        }
+
+        // Navigate to QR payment page
+        navigate(`/qr-payment/${result.appointmentId}`, {
+          state: {
+            appointmentDetails: result,
+            doctor: doctor,
+            fromBooking: true,
+          },
+        });
+      }
     } catch (error: any) {
       console.error("Error booking appointment:", error);
       if (error.response?.status === 400) {

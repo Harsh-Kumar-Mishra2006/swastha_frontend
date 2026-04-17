@@ -18,6 +18,7 @@ import {
   Info,
   Home,
 } from "lucide-react";
+import { Download } from "lucide-react";
 import toast from "react-hot-toast";
 
 const QRPaymentPage = () => {
@@ -41,6 +42,7 @@ const QRPaymentPage = () => {
   const [paymentTime, setPaymentTime] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const { generateAppointmentSlip } = usePayment();
 
   const appointmentData = location.state?.appointmentDetails;
   const doctorData = location.state?.doctor;
@@ -185,6 +187,15 @@ const QRPaymentPage = () => {
       setUploading(false);
     }
   };
+  const handleDownloadSlip = async () => {
+    if (appointmentId) {
+      try {
+        await generateAppointmentSlip(appointmentId);
+      } catch (error) {
+        console.error("Error downloading slip:", error);
+      }
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -215,6 +226,13 @@ const QRPaymentPage = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={handleDownloadSlip}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <Download className="h-5 w-5" />
+                Download Appointment Slip
+              </button>
               <button
                 onClick={() => navigate("/")}
                 className="px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"

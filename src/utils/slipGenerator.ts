@@ -1,28 +1,78 @@
 // utils/slipGenerator.ts
-import { ConfirmedAppointment } from '../types/appointments';
+export const generateAppointmentSlipHTML = (appointment: any): string => {
+  // Safe data extraction with fallbacks
+  const appointmentId = appointment?.appointmentId || appointment?._id || 'N/A';
+  const status = appointment?.status || 'pending';
+  const appointmentDate = appointment?.appointmentDate || new Date().toISOString();
+  
+  // Handle appointmentTime safely
+  let timeSlot = 'N/A';
+  if (appointment?.appointmentTime) {
+    if (typeof appointment.appointmentTime === 'string') {
+      timeSlot = appointment.appointmentTime;
+    } else if (appointment.appointmentTime.slot) {
+      timeSlot = appointment.appointmentTime.slot;
+    }
+  }
+  
+  // Handle appointment type
+  const appointmentType = appointment?.appointmentType || 'visit';
+  const typeText = appointmentType === 'visit' ? 'Clinic Visit' : 'Online Consultation';
+  
+  // Handle doctor info safely
+  const doctorName = appointment?.doctor?.name || appointment?.doctorName || 'N/A';
+  const doctorSpecialization = appointment?.doctor?.specialization || appointment?.specialization || 'N/A';
+  const doctorExperience = appointment?.doctor?.experience || appointment?.experience || appointment?.doctor?.yearsOfExperience || 'N/A';
+  
+  // Handle patient info safely
+  const patientName = appointment?.patient?.name || appointment?.patientName || 'N/A';
+  const reasonForVisit = appointment?.reasonForVisit || 'Not specified';
+  
+  // Handle payment info safely
+  const consultationFee = appointment?.doctor?.consultationFee || appointment?.consultationFee || 500;
+  const convenienceFee = Math.round(Number(consultationFee) * 0.02);
+  const totalAmount = Number(consultationFee) + convenienceFee;
+  const paymentStatus = appointment?.paymentStatus || 'paid';
 
-export const generateAppointmentSlipHTML = (appointment: ConfirmedAppointment): string => {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch {
+      return 'Date not available';
+    }
   };
 
   const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour % 12 || 12;
-    return `${hour12}:${minutes} ${ampm}`;
+    try {
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      return `${hour12}:${minutes} ${ampm}`;
+    } catch {
+      return time;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'confirmed': return 'status-confirmed';
+      case 'completed': return 'status-completed';
+      case 'cancelled': return 'status-cancelled';
+      default: return 'status-pending';
+    }
   };
 
   return `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Appointment Slip - ${appointment.appointmentId}</title>
+      <title>Appointment Slip - ${appointmentId}</title>
+      <meta charset="UTF-8">
       <style>
         * {
           margin: 0;
@@ -31,7 +81,7 @@ export const generateAppointmentSlipHTML = (appointment: ConfirmedAppointment): 
         }
         body {
           font-family: 'Segoe UI', Arial, sans-serif;
-          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          background: #f0fdf4;
           padding: 40px 20px;
         }
         .container {
@@ -100,6 +150,14 @@ export const generateAppointmentSlipHTML = (appointment: ConfirmedAppointment): 
           background: #dbeafe;
           color: #1e40af;
         }
+        .status-pending {
+          background: #fef3c7;
+          color: #92400e;
+        }
+        .status-cancelled {
+          background: #fee2e2;
+          color: #991b1b;
+        }
         .footer {
           background: #f9fafb;
           padding: 20px 30px;
@@ -108,12 +166,23 @@ export const generateAppointmentSlipHTML = (appointment: ConfirmedAppointment): 
           font-size: 12px;
           color: #6b7280;
         }
-        .qr-section {
+        .button-container {
           text-align: center;
           margin-top: 20px;
           padding: 20px;
-          background: #f9fafb;
+        }
+        button {
+          padding: 10px 20px;
+          background: #0d9488;
+          color: white;
+          border: none;
           border-radius: 8px;
+          cursor: pointer;
+          margin: 0 10px;
+          font-size: 14px;
+        }
+        button:hover {
+          background: #0f766e;
         }
         @media print {
           body {
@@ -141,25 +210,25 @@ export const generateAppointmentSlipHTML = (appointment: ConfirmedAppointment): 
             <h3>📋 Appointment Details</h3>
             <div class="info-row">
               <div class="info-label">Appointment ID:</div>
-              <div class="info-value">${appointment.appointmentId}</div>
+              <div class="info-value">${appointmentId}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Status:</div>
               <div class="info-value">
-                <span class="status-badge status-${appointment.status}">${appointment.status}</span>
+                <span class="status-badge ${getStatusColor(status)}">${status.toUpperCase()}</span>
               </div>
             </div>
             <div class="info-row">
               <div class="info-label">Date:</div>
-              <div class="info-value">${formatDate(appointment.appointmentDate)}</div>
+              <div class="info-value">${formatDate(appointmentDate)}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Time:</div>
-              <div class="info-value">${formatTime(appointment.appointmentTime.slot)}</div>
+              <div class="info-value">${formatTime(timeSlot)}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Type:</div>
-              <div class="info-value">${appointment.appointmentType === 'visit' ? 'Clinic Visit' : 'Online Consultation'}</div>
+              <div class="info-value">${typeText}</div>
             </div>
           </div>
 
@@ -167,15 +236,15 @@ export const generateAppointmentSlipHTML = (appointment: ConfirmedAppointment): 
             <h3>👨‍⚕️ Doctor Information</h3>
             <div class="info-row">
               <div class="info-label">Doctor Name:</div>
-              <div class="info-value">Dr. ${appointment.doctor.name}</div>
+              <div class="info-value">Dr. ${doctorName}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Specialization:</div>
-              <div class="info-value">${appointment.doctor.specialization}</div>
+              <div class="info-value">${doctorSpecialization}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Experience:</div>
-              <div class="info-value">${appointment.doctor.experience || 'N/A'} years</div>
+              <div class="info-value">${doctorExperience} years</div>
             </div>
           </div>
 
@@ -183,11 +252,11 @@ export const generateAppointmentSlipHTML = (appointment: ConfirmedAppointment): 
             <h3>👤 Patient Information</h3>
             <div class="info-row">
               <div class="info-label">Patient Name:</div>
-              <div class="info-value">${appointment.patient.name}</div>
+              <div class="info-value">${patientName}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Reason for Visit:</div>
-              <div class="info-value">${appointment.reasonForVisit}</div>
+              <div class="info-value">${reasonForVisit}</div>
             </div>
           </div>
 
@@ -195,11 +264,19 @@ export const generateAppointmentSlipHTML = (appointment: ConfirmedAppointment): 
             <h3>💰 Payment Details</h3>
             <div class="info-row">
               <div class="info-label">Consultation Fee:</div>
-              <div class="info-value">₹${appointment.consultationFee}</div>
+              <div class="info-value">₹${consultationFee}</div>
             </div>
             <div class="info-row">
-              <div class="info-label">Total Paid:</div>
-              <div class="info-value">₹${appointment.totalAmount || appointment.consultationFee}</div>
+              <div class="info-label">Convenience Fee (2%):</div>
+              <div class="info-value">₹${convenienceFee}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Total Amount:</div>
+              <div class="info-value"><strong>₹${totalAmount}</strong></div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Payment Status:</div>
+              <div class="info-value">${paymentStatus.toUpperCase()}</div>
             </div>
           </div>
         </div>
@@ -211,10 +288,9 @@ export const generateAppointmentSlipHTML = (appointment: ConfirmedAppointment): 
         </div>
       </div>
       
-      <div class="no-print" style="text-align: center; margin-top: 20px;">
-        <button onclick="window.print()" style="padding: 10px 20px; background: #0d9488; color: white; border: none; border-radius: 8px; cursor: pointer; margin: 0 10px;">
-          🖨️ Print Slip
-        </button>
+      <div class="button-container no-print">
+        <button onclick="window.print()">🖨️ Print Slip</button>
+        <button onclick="window.close()">❌ Close</button>
       </div>
     </body>
     </html>

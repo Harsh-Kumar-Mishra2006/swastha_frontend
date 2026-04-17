@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAppointment } from "../../hooks/useAppointments";
 import { Calendar, Clock, IndianRupee, Video, Home } from "lucide-react";
 import { format } from "date-fns";
+import { Download } from "lucide-react";
+import { usePayment } from "../../hooks/usePayment";
 
 const MyAppointments = () => {
   const navigate = useNavigate();
@@ -13,6 +15,7 @@ const MyAppointments = () => {
     total: 0,
     pages: 1,
   });
+  const { generateAppointmentSlip } = usePayment();
 
   useEffect(() => {
     loadAppointments();
@@ -36,6 +39,14 @@ const MyAppointments = () => {
       } catch (error) {
         console.error("Error cancelling appointment:", error);
       }
+    }
+  };
+
+  const handleDownloadSlip = async (appointmentId: string) => {
+    try {
+      await generateAppointmentSlip(appointmentId);
+    } catch (error) {
+      console.error("Error downloading slip:", error);
     }
   };
 
@@ -148,6 +159,16 @@ const MyAppointments = () => {
                     >
                       View Details
                     </button>
+                    {(apt.status === "confirmed" ||
+                      apt.status === "completed") && (
+                      <button
+                        onClick={() => handleDownloadSlip(apt._id)}
+                        className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download Slip
+                      </button>
+                    )}
                     {apt.status === "confirmed" && (
                       <button
                         onClick={() => handleCancel(apt._id)}

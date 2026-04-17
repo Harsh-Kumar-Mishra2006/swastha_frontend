@@ -7,6 +7,8 @@ import type {
   PendingPaymentListResponse,
   VerifyPaymentData
 } from '../types/payment';
+import { toast } from 'react-toastify';
+import { generateAppointmentSlipHTML } from '../utils/slipGenerator';
 
 class PaymentService {
   // Get QR code payment details

@@ -2,143 +2,33 @@ import { useEffect, useState } from "react";
 import { motion, useMotionValue, AnimatePresence } from "framer-motion";
 import AnimatedBackground from "../AnimatedBackground";
 
-// Feature card component
-const FeatureCard = ({ icon, title, description, index, color }: any) => {
+// Simple floating shape for decoration
+const FloatingShape = ({ delay, x, y, size, color }: any) => {
   return (
     <motion.div
-      className={`relative overflow-hidden rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 p-6 cursor-pointer group`}
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-      whileHover={{
-        y: -10,
-        transition: { duration: 0.3 },
+      className={`absolute rounded-full ${color} opacity-20 blur-3xl`}
+      style={{
+        width: size,
+        height: size,
+        left: x,
+        top: y,
       }}
-      viewport={{ once: true }}
-    >
-      {/* Glow effect on hover */}
-      <motion.div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-        style={{
-          background: `radial-gradient(circle at 50% 0%, ${color}40, transparent 70%)`,
-        }}
-      />
-
-      {/* Icon with animation */}
-      <motion.div
-        className="text-4xl mb-4 relative z-10"
-        whileHover={{ rotate: 360 }}
-        transition={{ duration: 0.6 }}
-      >
-        {icon}
-      </motion.div>
-
-      <h3 className="text-xl font-bold text-white mb-2 relative z-10">
-        {title}
-      </h3>
-      <p className="text-white/70 relative z-10">{description}</p>
-
-      {/* Decorative line */}
-      <motion.div
-        className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-transparent via-white to-transparent"
-        initial={{ width: 0 }}
-        whileHover={{ width: "100%" }}
-        transition={{ duration: 0.3 }}
-      />
-    </motion.div>
-  );
-};
-
-// Stat card component
-const StatCard = ({ value, label, icon, delay }: any) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let start = 0;
-    const end = parseInt(value);
-    const duration = 2000;
-    const increment = end / (duration / 16);
-
-    const timer = setInterval(() => {
-      start += increment;
-      if (start > end) {
-        setCount(end);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(start));
-      }
-    }, 16);
-
-    return () => clearInterval(timer);
-  }, [value]);
-
-  return (
-    <motion.div
-      className="text-center"
-      initial={{ opacity: 0, scale: 0.5 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, delay }}
-      viewport={{ once: true }}
-    >
-      <motion.div
-        className="text-4xl mb-2"
-        animate={{
-          y: [0, -10, 0],
-          rotate: [0, 5, -5, 0],
-        }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          repeatType: "reverse",
-          delay: delay,
-        }}
-      >
-        {icon}
-      </motion.div>
-      <div className="text-3xl font-bold text-white mb-1">{count}+</div>
-      <div className="text-white/80">{label}</div>
-    </motion.div>
-  );
-};
-
-// Service card component
-const ServiceCard = ({ image, title, description, index }: any) => {
-  return (
-    <motion.div
-      className="relative h-80 rounded-2xl overflow-hidden group"
-      initial={{ opacity: 0, x: -50 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-      viewport={{ once: true }}
-      whileHover={{ y: -10 }}
-    >
-      <img
-        src={image}
-        alt={title}
-        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-      />
-
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-      {/* Content */}
-      <motion.div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500">
-        <h3 className="text-xl font-bold mb-2">{title}</h3>
-        <p className="text-sm text-white/80">{description}</p>
-      </motion.div>
-
-      {/* Title always visible */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 text-white bg-gradient-to-t from-black/60 to-transparent group-hover:opacity-0 transition-opacity duration-300">
-        <h3 className="text-xl font-bold">{title}</h3>
-      </div>
-    </motion.div>
+      animate={{
+        y: [0, -30, 0],
+        x: [0, 20, 0],
+      }}
+      transition={{
+        duration: 8,
+        delay,
+        repeat: Infinity,
+        repeatType: "reverse",
+      }}
+    />
   );
 };
 
 const PatientHeroPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-
-  // Mouse position tracking
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -148,7 +38,6 @@ const PatientHeroPage = () => {
     const handleMouseMove = (e: MouseEvent) => {
       const centerX = window.innerWidth / 2;
       const centerY = window.innerHeight / 2;
-
       mouseX.set(e.clientX - centerX);
       mouseY.set(e.clientY - centerY);
     };
@@ -158,20 +47,49 @@ const PatientHeroPage = () => {
   }, [mouseX, mouseY]);
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b to-cyan-400 from-lime-400 overflow-hidden">
-      {/* Animated Background */}
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 overflow-hidden">
       <AnimatedBackground mouseX={mouseX} mouseY={mouseY} />
+
+      {/* Decorative floating shapes */}
+      <FloatingShape
+        delay={0}
+        x="10%"
+        y="20%"
+        size="300px"
+        color="bg-teal-500"
+      />
+      <FloatingShape
+        delay={2}
+        x="80%"
+        y="60%"
+        size="400px"
+        color="bg-cyan-500"
+      />
+      <FloatingShape
+        delay={4}
+        x="20%"
+        y="70%"
+        size="250px"
+        color="bg-emerald-500"
+      />
+      <FloatingShape
+        delay={1}
+        x="70%"
+        y="10%"
+        size="200px"
+        color="bg-blue-500"
+      />
 
       {/* Initial Load Animation */}
       <AnimatePresence>
         {!isLoaded && (
           <motion.div
-            className="fixed inset-0 bg-white z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center"
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
           >
             <motion.div
-              className="w-20 h-20 border-4 border-teal-500 border-t-transparent rounded-full"
+              className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full"
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             />
@@ -180,292 +98,150 @@ const PatientHeroPage = () => {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="relative z-10">
-        {/* Hero Section */}
-        <section className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto text-center">
-            {/* Floating Badge */}
-            <motion.div
-              className="inline-block mb-8"
-              initial={{ opacity: 0, y: -50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              <span className="px-4 py-2 bg-white/10 backdrop-blur-lg rounded-full text-white border border-white/20">
-                🏥 Trusted by 50,000+ patients & doctors
-              </span>
-            </motion.div>
-
-            {/* Main Heading */}
-            <motion.h1
-              className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-            >
-              <span className="inline-block">Welcome to</span>
-              <br />
-              <motion.span
-                className="inline-block bg-gradient-to-r from-yellow-300 via-pink-300 to-cyan-300 bg-clip-text text-transparent"
-                animate={{
-                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-                style={{
-                  backgroundSize: "200% 200%",
-                }}
-              >
-                Swastha
-              </motion.span>
-            </motion.h1>
-
-            {/* Subheading */}
-            <motion.p
-              className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl mx-auto"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-            >
-              Bridging the gap between patients and healthcare providers through
-              <span className="font-semibold text-yellow-300">
-                {" "}
-                innovative technology
-              </span>
-              and
-              <span className="font-semibold text-cyan-300">
-                {" "}
-                compassionate care
-              </span>
-            </motion.p>
-
-            {/* CTA Buttons */}
-            <motion.div
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
-            >
-              <motion.button
-                className="group relative px-8 py-4 bg-gradient-to-r from-teal-400 to-cyan-400 text-white font-semibold rounded-xl overflow-hidden shadow-2xl"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-teal-600 to-cyan-600"
-                  initial={{ x: "100%" }}
-                  whileHover={{ x: 0 }}
-                  transition={{ duration: 0.3 }}
-                />
-                <span className="relative z-10 flex items-center gap-2">
-                  Find a Doctor
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </span>
-              </motion.button>
-
-              <motion.button
-                className="px-8 py-4 bg-white/10 backdrop-blur-lg text-white font-semibold rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Learn More
-              </motion.button>
-            </motion.div>
-
-            {/* Stats */}
-            <motion.div
-              className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 1 }}
-            >
-              <StatCard
-                value="500"
-                label="Expert Doctors"
-                icon="👨‍⚕️"
-                delay={0}
-              />
-              <StatCard value="50" label="Clinics" icon="🏥" delay={0.1} />
-              <StatCard
-                value="50k"
-                label="Happy Patients"
-                icon="😊"
-                delay={0.2}
-              />
-              <StatCard value="24/7" label="Support" icon="🆘" delay={0.3} />
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              className="text-center mb-12"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Why Choose <span className="text-yellow-300">Swastha</span>?
-              </h2>
-              <p className="text-xl text-white/80 max-w-3xl mx-auto">
-                Experience healthcare reimagined with our cutting-edge features
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <FeatureCard
-                icon="🚀"
-                title="Instant Consultations"
-                description="Connect with doctors within minutes through our video consultation platform"
-                index={0}
-                color="#14b8a6"
-              />
-              <FeatureCard
-                icon="🔒"
-                title="Secure Health Records"
-                description="Your medical data is encrypted and stored with bank-level security"
-                index={1}
-                color="#06b6d4"
-              />
-              <FeatureCard
-                icon="🤖"
-                title="AI Health Assistant"
-                description="24/7 intelligent support for your health queries and appointment scheduling"
-                index={2}
-                color="#8b5cf6"
-              />
-              <FeatureCard
-                icon="💊"
-                title="Medicine Delivery"
-                description="Get prescribed medicines delivered to your doorstep"
-                index={3}
-                color="#ec4899"
-              />
-              <FeatureCard
-                icon="📊"
-                title="Health Analytics"
-                description="Track your health metrics with beautiful visualizations"
-                index={4}
-                color="#f59e0b"
-              />
-              <FeatureCard
-                icon="👥"
-                title="Family Accounts"
-                description="Manage health records for your entire family in one place"
-                index={5}
-                color="#10b981"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Services Showcase */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              className="text-center mb-12"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Our <span className="text-pink-300">Services</span>
-              </h2>
-              <p className="text-xl text-white/80 max-w-3xl mx-auto">
-                Comprehensive healthcare solutions at your fingertips
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <ServiceCard
-                image="https://images.unsplash.com/photo-1579684385127-1ef15d508118?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
-                title="Expert Doctors"
-                description="Consult with top specialists from various fields"
-                index={0}
-              />
-              <ServiceCard
-                image="https://images.unsplash.com/photo-1666214280557-f1b5022eb634?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
-                title="Modern Facilities"
-                description="State-of-the-art equipment and comfortable environment"
-                index={1}
-              />
-              <ServiceCard
-                image="https://images.unsplash.com/photo-1631815588090-d4bfec5b1b98?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
-                title="24/7 Care"
-                description="Round-the-clock medical support and emergency services"
-                index={2}
-              />
-              <ServiceCard
-                image="https://images.unsplash.com/photo-1581056771107-24ca5f033842?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
-                title="Digital Records"
-                description="Secure and accessible health data management"
-                index={3}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto text-center">
+          {/* Floating Badge */}
           <motion.div
-            className="max-w-4xl mx-auto bg-gradient-to-r from-teal-500 to-cyan-500 rounded-3xl p-12 text-center relative overflow-hidden"
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            className="inline-block mb-8"
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
           >
-            {/* Background decoration */}
-            <motion.div
-              className="absolute inset-0 bg-white/10"
+            <span className="px-5 py-2 bg-white/5 backdrop-blur-md rounded-full text-teal-300 border border-white/10 text-sm font-medium">
+              ✨ Trusted by 50,000+ patients & doctors
+            </span>
+          </motion.div>
+
+          {/* Main Heading */}
+          <motion.h1
+            className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 leading-tight"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.3 }}
+          >
+            Welcome to{" "}
+            <motion.span
+              className="inline-block bg-gradient-to-r from-teal-300 via-cyan-300 to-emerald-300 bg-clip-text text-transparent"
               animate={{
-                scale: [1, 1.2, 1],
-                rotate: [0, 90, 0],
+                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
               }}
               transition={{
-                duration: 20,
+                duration: 6,
                 repeat: Infinity,
                 ease: "linear",
               }}
-            />
+              style={{ backgroundSize: "200% 200%" }}
+            >
+              Swastha
+            </motion.span>
+          </motion.h1>
 
-            <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Ready to Start Your Health Journey?
-              </h2>
-              <p className="text-xl text-white/90 mb-8">
-                Join thousands of satisfied patients and doctors on Swastha
-                today
-              </p>
-              <motion.button
-                className="px-8 py-4 bg-white text-teal-600 font-semibold rounded-xl shadow-lg hover:shadow-xl"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Get Started Now
-              </motion.button>
-            </div>
+          {/* Subheading */}
+          <motion.p
+            className="text-lg md:text-xl text-slate-300 mb-12 max-w-2xl mx-auto"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.5 }}
+          >
+            Bridging the gap between patients and healthcare providers through
+            innovative technology and compassionate care.
+          </motion.p>
+
+          {/* CTA Buttons */}
+          <motion.div
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.7 }}
+          >
+            <motion.button
+              className="group relative px-8 py-3.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-medium rounded-full overflow-hidden shadow-lg shadow-teal-500/25"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-teal-600 to-cyan-600"
+                initial={{ x: "100%" }}
+                whileHover={{ x: 0 }}
+                transition={{ duration: 0.3 }}
+              />
+              <span className="relative z-10 flex items-center gap-2">
+                Find a Doctor
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </span>
+            </motion.button>
+
+            <motion.button
+              className="px-8 py-3.5 bg-white/5 backdrop-blur-sm text-white font-medium rounded-full border border-white/10 hover:bg-white/10 transition-all duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Learn More
+            </motion.button>
           </motion.div>
-        </section>
+
+          {/* Simple Stats Row */}
+          <motion.div
+            className="flex flex-wrap justify-center gap-8 md:gap-12"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.9 }}
+          >
+            {[
+              { value: "500+", label: "Expert Doctors", icon: "👨‍⚕️" },
+              { value: "50+", label: "Clinics", icon: "🏥" },
+              { value: "50k+", label: "Happy Patients", icon: "😊" },
+              { value: "24/7", label: "Support", icon: "🆘" },
+            ].map((stat, idx) => (
+              <motion.div
+                key={stat.label}
+                className="text-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1 + idx * 0.1 }}
+              >
+                <div className="text-2xl mb-1">{stat.icon}</div>
+                <div className="text-2xl font-bold text-white">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-slate-400">{stat.label}</div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
       </div>
+
+      {/* Scroll indicator */}
+      <motion.div
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+      >
+        <motion.div
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center"
+        >
+          <motion.div
+            animate={{ y: [0, 12, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="w-1 h-2 bg-white/50 rounded-full mt-2"
+          />
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

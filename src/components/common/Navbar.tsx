@@ -25,7 +25,7 @@ const Navbar = () => {
     { name: "About Us", href: "/about" },
     { name: "Services", href: "/services" },
     { name: "Our Doctors", href: "/doctors" },
-    { name: "Contact Us", href: "/contact" },
+    { name: "Contact Us", href: "/contact-us" },
   ];
 
   if (isAuthenticated && user?.role === "admin") {

@@ -38,7 +38,8 @@ class PaymentService {
       formData.append('paymentTime', paymentTime);
     }
 
-    const response = await api.post(`/payments/upload-screenshot/${appointmentId}`, formData);
+    // CORRECT: No appointmentId in URL, send as formData field
+    const response = await api.post('/payments/upload-screenshot', formData);
     return response.data;
   }
 

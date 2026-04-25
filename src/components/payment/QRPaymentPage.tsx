@@ -376,15 +376,19 @@ const QRPaymentPage = () => {
 
             <div className="p-6">
               {/* QR Code Image */}
+              // components/payments/QRPaymentPage.tsx - Simplified QR section
+              // Replace the QR code image section (around line 250-270) with:
               <div className="flex flex-col items-center mb-6">
+                {/* Static QR Code from public folder */}
                 <div className="bg-white p-4 rounded-xl border-2 border-gray-200 mb-3 shadow-lg">
                   <img
-                    src={qrDetails?.qrCodeUrl || "/images/payment-qr.png"}
+                    src="/payment-qr-code.jpg" // Place this file in your public folder
                     alt="Payment QR Code"
                     className="w-64 h-64 object-contain"
                     onError={(e) => {
+                      // Fallback if image not found
                       (e.target as HTMLImageElement).src =
-                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='3' y1='9' x2='21' y2='9'%3E%3C/line%3E%3Cline x1='3' y1='15' x2='21' y2='15'%3E%3C/line%3E%3Cline x1='9' y1='21' x2='9' y2='9'%3E%3C/line%3E%3C/svg%3E";
+                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'%3E%3C/rect%3E%3Ctext x='12' y='14' text-anchor='middle' font-size='10'%3EQR Code%3C/text%3E%3C/svg%3E";
                     }}
                   />
                 </div>
@@ -399,7 +403,6 @@ const QRPaymentPage = () => {
                   <span>PayTM</span>
                 </div>
               </div>
-
               {/* UPI ID */}
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <p className="text-xs text-gray-500 mb-2">
@@ -422,7 +425,6 @@ const QRPaymentPage = () => {
                   </button>
                 </div>
               </div>
-
               {/* Security Note */}
               <div className="flex items-center justify-center space-x-2 text-xs text-gray-500">
                 <Shield className="h-3 w-3" />

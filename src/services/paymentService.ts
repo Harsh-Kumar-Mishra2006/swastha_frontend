@@ -39,7 +39,11 @@ class PaymentService {
     }
 
     // CORRECT: No appointmentId in URL, send as formData field
-    const response = await api.post('/payments/upload-screenshot', formData);
+    const response = await api.post('/payments/upload-screenshot', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   }
 

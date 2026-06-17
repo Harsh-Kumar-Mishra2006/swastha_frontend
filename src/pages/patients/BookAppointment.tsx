@@ -3,10 +3,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import appointmentService from "../../services/appointmentService";
-import { DoctorAvailability } from "../../types/appointment";
+import { type DoctorAvailability } from "../../types/appointments";
 import {
-  Calendar,
-  Clock,
   User,
   Stethoscope,
   DollarSign,

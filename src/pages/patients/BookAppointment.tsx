@@ -472,7 +472,13 @@ const BookAppointment = () => {
                   <div className="bg-white p-4 rounded-lg inline-block">
                     <div className="w-48 h-48 bg-gray-100 mx-auto flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
                       <div className="text-center">
-                        <div className="text-5xl mb-2">📱</div>
+                        <div className="text-5xl mb-2">
+                          <img
+                            src="/payment-qr-code.jpg"
+                            alt="QR CODE"
+                            className=""
+                          />
+                        </div>
                         <p className="text-sm text-gray-500 font-medium">
                           QR Code
                         </p>

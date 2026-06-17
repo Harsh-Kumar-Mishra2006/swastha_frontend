@@ -1,128 +1,52 @@
 // types/appointment.ts
+export interface Appointment {
+  _id: string;
+  patient_email: string;
+  patient_name: string;
+  patient_phone: string;
+  doctor_email: string;
+  doctor_name: string;
+  doctor_specialization: string;
+  appointment_date: string;
+  appointment_time: string;
+  symptoms: string;
+  notes: string;
+  amount: number;
+  screenshot_url: string;
+  screenshot_public_id?: string;
+  payment_status: 'pending' | 'verified' | 'failed';
+  appointment_status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed';
+  doctor_notes: string;
+  rejection_reason: string;
+  approval_date?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-export interface DoctorBookingInfo {
-  doctorId: string;
-  doctorName: string;
+export interface BookAppointmentData {
+  patient_email: string;
+  patient_name: string;
+  patient_phone: string;
+  doctor_email: string;
+  doctor_name: string;
+  doctor_specialization: string;
+  appointment_date: string;
+  appointment_time: string;
+  symptoms: string;
+  notes: string;
+  amount: number;
+  payment_screenshot: File;
+}
+
+export interface DoctorAvailability {
+  id: string;
+  name: string;
+  email: string;
   specialization: string;
   consultationFee: number;
-  experience?: number;
-}
-
-export interface AppointmentData {
-  doctorId: string;
-  appointmentDate: string;
-  appointmentTime: string;
-  appointmentType: 'visit' | 'online';
-  reasonForVisit: string;
-  symptoms?: string[];
-  diseaseDetails?: {
-    primaryDisease: string;
-    duration: string;
-    severity: 'mild' | 'moderate' | 'severe';
+  availableDays: string[];
+  availableTime: {
+    start: string;
+    end: string;
   };
-  isFirstVisit: boolean;
-  additionalNotes?: string;
-}
-
-export interface PendingAppointmentResponse {
-  appointmentId: string;
-  appointmentIdDisplay: string;
-  doctorName: string;
-  consultationFee: number;
-  convenienceFee: number;
-  totalAmount: number;
-  expiresAt: string;
-}
-
-export interface PendingAppointmentWithPayment {
-  appointmentId: string;
-  appointmentIdDisplay: string;
-  doctor: {
-    name: string;
-    specialization: string;
-    consultationFee: number;
-  };
-  appointmentDate: string;
-  appointmentTime: {
-    slot: string;
-    duration: number;
-  };
-  reasonForVisit: string;
-  paymentDetails: {
-    consultationFee: number;
-    convenienceFee: number;
-    totalAmount: number;
-    status: 'not_started' | 'pending' | 'paid' | 'rejected';
-    paymentId?: string;
-  };
-  expiresAt: string;
-}
-
-export interface ConfirmedAppointment {
-  appointmentId: string;
-  appointmentDate: string;
-  appointmentTime: {
-    slot: string;
-    duration: number;
-  };
-  doctor: {
-    name: string;
-    specialization: string;
-  };
-  patient: {
-    name: string;
-    age: number;
-    gender: string;
-  };
-  status: 'confirmed';
-  paymentDetails?: {
-    paymentId: string;
-    amount: number;
-    paymentStatus: string;
-    paymentDate: string;
-  };
-  reasonForVisit: string;
-}
-
-export interface AppointmentListItem {
-  appointmentId: string;
-  doctorName: string;
-  specialization: string;
-  appointmentDate: string;
-  appointmentTime: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'expired';
-  bookingType: 'direct' | 'paid';
-  reasonForVisit: string;
-}
-
-export interface AppointmentListResponse {
-  success: boolean;
-  data: AppointmentListItem[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-}
-
-// Report upload
-export interface UploadedReport {
-  fileName: string;
-  fileUrl: string;
-  fileType: string;
-  uploadedAt: string;
-}
-
-export interface UploadReportsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    reports: UploadedReport[];
-  };
-}
-
-export interface CancelAppointmentResponse {
-  success: boolean;
-  message: string;
 }

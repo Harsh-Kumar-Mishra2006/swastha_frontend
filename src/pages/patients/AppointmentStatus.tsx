@@ -1,23 +1,17 @@
 // pages/patient/AppointmentStatus.tsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import appointmentService from "../../services/appointmentService";
-import { Appointment } from "../../types/appointment";
+import { type Appointment } from "../../types/appointments";
 import {
   Calendar,
   Clock,
   User,
-  Stethoscope,
   DollarSign,
   CheckCircle,
   XCircle,
   Clock as ClockIcon,
-  AlertCircle,
-  FileText,
-  Phone,
-  Mail,
-  MapPin,
   ChevronLeft,
 } from "lucide-react";
 import toast from "react-hot-toast";

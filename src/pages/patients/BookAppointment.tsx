@@ -1,26 +1,45 @@
-// pages/patient/BookAppointment.tsx
+// pages/patients/BookAppointment.tsx
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import appointmentService from "../../services/appointmentService";
-import { type DoctorAvailability } from "../../types/appointments";
 import {
-  User,
   Stethoscope,
   DollarSign,
   AlertCircle,
   CheckCircle,
   XCircle,
+  ArrowLeft,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import api from "../../services/api";
+
+interface DoctorDetails {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  specialization: string;
+  qualifications: string;
+  experience: string;
+  bio: string;
+  consultationFee: number;
+  availableDays: string[];
+  availableTime: {
+    start: string;
+    end: string;
+  };
+}
 
 const BookAppointment = () => {
+  const { doctorId } = useParams<{ doctorId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [doctors, setDoctors] = useState<DoctorAvailability[]>([]);
-  const [selectedDoctor, setSelectedDoctor] =
-    useState<DoctorAvailability | null>(null);
+  const [doctorLoading, setDoctorLoading] = useState(true);
+  const [selectedDoctor, setSelectedDoctor] = useState<DoctorDetails | null>(
+    null,
+  );
   const [formData, setFormData] = useState({
     appointment_date: "",
     appointment_time: "",
@@ -31,24 +50,32 @@ const BookAppointment = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [step, setStep] = useState(1); // 1: Select Doctor, 2: Fill Details, 3: Payment
 
+  // Fetch doctor details if doctorId is provided
   useEffect(() => {
-    loadDoctors();
-  }, []);
+    if (doctorId) {
+      fetchDoctorDetails(doctorId);
+    } else {
+      setDoctorLoading(false);
+    }
+  }, [doctorId]);
 
-  const loadDoctors = async () => {
+  const fetchDoctorDetails = async (id: string) => {
     try {
-      const response = await appointmentService.getAvailableDoctors();
-      if (response.success) {
-        setDoctors(response.data);
+      setDoctorLoading(true);
+      const response = await api.get(`/public/doctors/${id}`);
+      if (response.data.success) {
+        setSelectedDoctor(response.data.data);
+      } else {
+        toast.error("Doctor not found");
+        navigate("/doctors");
       }
     } catch (error) {
-      toast.error("Failed to load doctors");
+      console.error("Error fetching doctor:", error);
+      toast.error("Failed to load doctor details");
+      navigate("/doctors");
+    } finally {
+      setDoctorLoading(false);
     }
-  };
-
-  const handleDoctorSelect = (doctor: DoctorAvailability) => {
-    setSelectedDoctor(doctor);
-    setStep(2);
   };
 
   const handleInputChange = (
@@ -65,6 +92,16 @@ const BookAppointment = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+      // Validate file type
+      if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+        toast.error("Only images and PDFs are allowed");
+        return;
+      }
       setPaymentScreenshot(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -109,6 +146,7 @@ const BookAppointment = () => {
         });
       }
     } catch (error: any) {
+      console.error("Booking error:", error);
       toast.error(error.response?.data?.error || "Failed to book appointment");
     } finally {
       setLoading(false);
@@ -129,16 +167,46 @@ const BookAppointment = () => {
     return slots;
   };
 
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
+
+  // Get max date (30 days from now)
+  const getMaxDate = () => {
+    const max = new Date();
+    max.setDate(max.getDate() + 30);
+    return max.toISOString().split("T")[0];
+  };
+
+  if (doctorLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-emerald-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6"
+        >
+          <ArrowLeft className="h-5 w-5 mr-2" />
+          Back to Doctors
+        </button>
+
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
             Book an Appointment
           </h1>
           <p className="text-gray-600 mt-2">
-            Select a doctor and schedule your consultation
+            Schedule your consultation with a specialist
           </p>
         </div>
 
@@ -182,57 +250,70 @@ const BookAppointment = () => {
               <h2 className="text-xl font-semibold text-gray-900 mb-6">
                 Choose Your Doctor
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {doctors.map((doctor) => (
-                  <button
-                    key={doctor.id}
-                    onClick={() => handleDoctorSelect(doctor)}
-                    className={`p-4 border-2 rounded-xl text-left transition-all hover:shadow-lg ${
-                      selectedDoctor?.id === doctor.id
-                        ? "border-teal-500 bg-teal-50"
-                        : "border-gray-200 hover:border-teal-300"
-                    }`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="p-2 bg-teal-100 rounded-full">
-                        <User className="h-6 w-6 text-teal-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">
-                          Dr. {doctor.name}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {doctor.specialization}
-                        </p>
-                        <div className="flex items-center mt-2 text-sm">
-                          <DollarSign className="h-4 w-4 text-teal-600" />
-                          <span className="font-medium">
-                            ₹{doctor.consultationFee || 500}
-                          </span>
-                          <span className="text-gray-500 ml-1">
-                            consultation fee
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {doctor.availableDays?.slice(0, 3).map((day) => (
-                            <span
-                              key={day}
-                              className="px-2 py-0.5 bg-gray-100 text-xs rounded-full text-gray-600"
-                            >
-                              {day.slice(0, 3)}
-                            </span>
-                          ))}
-                          {doctor.availableDays?.length > 3 && (
-                            <span className="px-2 py-0.5 bg-gray-100 text-xs rounded-full text-gray-600">
-                              +{doctor.availableDays.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+
+              {selectedDoctor ? (
+                // If doctor is pre-selected from URL
+                <div className="border-2 border-teal-500 rounded-xl p-6 bg-teal-50">
+                  <div className="flex items-start space-x-4">
+                    <div className="p-3 bg-teal-100 rounded-full">
+                      <Stethoscope className="h-8 w-8 text-teal-600" />
                     </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-gray-900">
+                        Dr. {selectedDoctor.name}
+                      </h3>
+                      <p className="text-gray-600">
+                        {selectedDoctor.specialization}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {selectedDoctor.qualifications}
+                      </p>
+                      <div className="flex items-center mt-2 text-sm">
+                        <DollarSign className="h-4 w-4 text-teal-600" />
+                        <span className="font-medium">
+                          ₹{selectedDoctor.consultationFee || 500}
+                        </span>
+                        <span className="text-gray-500 ml-1">
+                          consultation fee
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {selectedDoctor.availableDays?.map((day) => (
+                          <span
+                            key={day}
+                            className="px-2 py-0.5 bg-white text-xs rounded-full text-gray-600 border border-gray-200"
+                          >
+                            {day}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Available: {selectedDoctor.availableTime?.start} -{" "}
+                        {selectedDoctor.availableTime?.end}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setStep(2)}
+                    className="mt-4 w-full py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                  >
+                    Continue with this Doctor
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : (
+                // If no doctor selected, show a message
+                <div className="text-center py-8">
+                  <p className="text-gray-600">
+                    Please select a doctor from the list
+                  </p>
+                  <button
+                    onClick={() => navigate("/doctors")}
+                    className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                  >
+                    Browse Doctors
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -284,7 +365,8 @@ const BookAppointment = () => {
                     required
                     value={formData.appointment_date}
                     onChange={handleInputChange}
-                    min={new Date().toISOString().split("T")[0]}
+                    min={getTodayDate()}
+                    max={getMaxDate()}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
@@ -311,11 +393,12 @@ const BookAppointment = () => {
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Symptoms / Reason for visit
+                    Symptoms / Reason for visit *
                   </label>
                   <textarea
                     name="symptoms"
                     rows={3}
+                    required
                     value={formData.symptoms}
                     onChange={handleInputChange}
                     placeholder="Describe your symptoms or reason for consultation"
@@ -360,17 +443,17 @@ const BookAppointment = () => {
           {step === 3 && selectedDoctor && (
             <form onSubmit={handleSubmit}>
               <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                Payment
+                Complete Payment
               </h2>
 
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded mb-6">
                 <div className="flex">
-                  <AlertCircle className="h-5 w-5 text-yellow-400" />
+                  <AlertCircle className="h-5 w-5 text-yellow-400 flex-shrink-0" />
                   <div className="ml-3">
                     <p className="text-sm text-yellow-700">
                       <strong>Please follow these steps:</strong>
                     </p>
-                    <ol className="text-sm text-yellow-700 list-decimal list-inside mt-1">
+                    <ol className="text-sm text-yellow-700 list-decimal list-inside mt-1 space-y-1">
                       <li>Scan the QR code below to make the payment</li>
                       <li>Take a screenshot of the successful payment</li>
                       <li>Upload the screenshot here</li>
@@ -387,29 +470,33 @@ const BookAppointment = () => {
                     Scan to Pay
                   </h3>
                   <div className="bg-white p-4 rounded-lg inline-block">
-                    {/* Static QR code placeholder - Replace with actual QR */}
-
                     <div className="w-48 h-48 bg-gray-100 mx-auto flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
                       <div className="text-center">
-                        <div className="text-4xl mb-2">
-                          <img
-                            src="payment-qr-code.jpg"
-                            alt="QR Code"
-                            className=""
-                          />
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          QR Code Placeholder
+                        <div className="text-5xl mb-2">📱</div>
+                        <p className="text-sm text-gray-500 font-medium">
+                          QR Code
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
                           Amount: ₹{selectedDoctor.consultationFee || 500}
                         </p>
+                        <p className="text-xs text-gray-400">
+                          UPI: swastha@pay
+                        </p>
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 mt-3">
-                    Pay ₹{selectedDoctor.consultationFee || 500} via UPI
-                  </p>
+                  <div className="mt-3">
+                    <p className="text-sm text-gray-600">
+                      Pay{" "}
+                      <span className="font-bold text-teal-600">
+                        ₹{selectedDoctor.consultationFee || 500}
+                      </span>{" "}
+                      via UPI
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Scan QR with any UPI app
+                    </p>
+                  </div>
                 </div>
 
                 {/* Upload Screenshot */}
@@ -419,23 +506,24 @@ const BookAppointment = () => {
                   </h3>
 
                   {!previewUrl ? (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal-400 transition-colors">
                       <input
                         type="file"
                         id="payment-screenshot"
-                        accept="image/*"
+                        accept="image/*,application/pdf"
                         onChange={handleFileChange}
                         className="hidden"
+                        required
                       />
                       <label
                         htmlFor="payment-screenshot"
                         className="cursor-pointer block"
                       >
-                        <div className="text-4xl mb-2">📸</div>
-                        <p className="text-gray-600">
+                        <div className="text-5xl mb-3">📸</div>
+                        <p className="text-gray-600 font-medium">
                           Click to upload screenshot
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-gray-400 mt-2">
                           JPG, PNG, PDF (max 5MB)
                         </p>
                       </label>
@@ -445,7 +533,7 @@ const BookAppointment = () => {
                       <img
                         src={previewUrl}
                         alt="Payment screenshot"
-                        className="w-full rounded-lg border border-gray-200"
+                        className="w-full rounded-lg border border-gray-200 max-h-64 object-contain"
                       />
                       <button
                         type="button"
@@ -453,12 +541,32 @@ const BookAppointment = () => {
                           setPaymentScreenshot(null);
                           setPreviewUrl(null);
                         }}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                       >
                         <XCircle className="h-5 w-5" />
                       </button>
+                      <p className="text-sm text-green-600 mt-2 flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Screenshot uploaded successfully
+                      </p>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="mt-6 bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-gray-600">Doctor</p>
+                    <p className="font-medium">Dr. {selectedDoctor.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Total Amount</p>
+                    <p className="text-xl font-bold text-teal-600">
+                      ₹{selectedDoctor.consultationFee || 500}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -473,9 +581,19 @@ const BookAppointment = () => {
                 <button
                   type="submit"
                   disabled={loading || !paymentScreenshot}
-                  className="px-6 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-lg hover:from-teal-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-lg hover:from-teal-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
-                  {loading ? "Booking..." : "Book Appointment"}
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Booking...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-5 w-5" />
+                      <span>Book Appointment</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

@@ -1,6 +1,20 @@
 // types/appointment.ts
 export interface Appointment {
   _id: string;
+  patientId: {
+    _id: string;
+    name: string;
+    email: string;
+    phone: string;
+    profile?: {
+      age?: string;
+      gender?: string;
+      dob?: string;
+      address?: string;
+      bloodGroup?: string;
+      allergies?: string[];
+    };
+  };  // ✅ Now populated with patient details
   patient_email: string;
   patient_name: string;
   patient_phone: string;
@@ -23,6 +37,7 @@ export interface Appointment {
   updatedAt: string;
 }
 
+// ✅ Updated booking data (now includes patientId automatically from server)
 export interface BookAppointmentData {
   patient_email: string;
   patient_name: string;
@@ -48,5 +63,21 @@ export interface DoctorAvailability {
   availableTime: {
     start: string;
     end: string;
+  };
+}
+
+// ✅ Patient info from appointment
+export interface PatientInfo {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  profile?: {
+    age?: string;
+    gender?: string;
+    dob?: string;
+    address?: string;
+    bloodGroup?: string;
+    allergies?: string[];
   };
 }

@@ -14,6 +14,7 @@ import {
   Mail,
   DollarSign,
   Search,
+  User
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -234,9 +235,17 @@ const DoctorAppointments = () => {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-semibold text-gray-900">
-                        {appointment.patient_name}
-                      </p>
+                      {/* ✅ Show patient ID */}
+                      <div className="flex items-center space-x-2">
+                        <p className="font-semibold text-gray-900">
+                          {appointment.patient_name}
+                        </p>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                          ID:{" "}
+                          {appointment.patientId?._id?.slice(-6) ||
+                            appointment.patient_email?.slice(0, 8)}
+                        </span>
+                      </div>
                       <p className="text-sm text-gray-600">
                         {appointment.patient_email}
                       </p>
@@ -272,8 +281,44 @@ const DoctorAppointments = () => {
                       <Phone className="inline h-4 w-4 ml-3 mr-1" />
                       {selectedAppointment.patient_phone}
                     </p>
+                    {selectedAppointment.patientId?.profile && (
+                      <div className="mt-1 text-xs text-gray-500">
+                        {selectedAppointment.patientId.profile.age && (
+                          <span>
+                            Age: {selectedAppointment.patientId.profile.age}{" "}
+                            •{" "}
+                          </span>
+                        )}
+                        {selectedAppointment.patientId.profile.gender && (
+                          <span>
+                            Gender:{" "}
+                            {selectedAppointment.patientId.profile.gender}
+                          </span>
+                        )}
+                        {selectedAppointment.patientId.profile.bloodGroup && (
+                          <span className="ml-2">
+                            Blood:{" "}
+                            {selectedAppointment.patientId.profile.bloodGroup}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {getStatusBadge(selectedAppointment.appointment_status)}
+                </div>
+                {/* ✅ Patient ID Card */}
+                <div className="md:col-span-2 bg-teal-50 rounded-lg p-4 border border-teal-200">
+                  <div className="flex items-start space-x-3">
+                    <div className="p-2 bg-teal-100 rounded-full">
+                      <User className="h-5 w-5 text-teal-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Patient ID</p>
+                      <p className="font-mono font-bold text-teal-700">
+                        {selectedAppointment.patientId?._id || "N/A"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Details Grid */}

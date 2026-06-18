@@ -290,6 +290,10 @@ const AppointmentStatus = () => {
                       <p className="text-sm text-gray-600">
                         {selectedAppointment.patient_phone}
                       </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Patient ID:{" "}
+                        {selectedAppointment.patientId?._id || "N/A"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">

@@ -1,31 +1,21 @@
 // pages/doctor/DoctorTestReports.tsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
 import {
   FileText,
   Plus,
   Search,
-  Filter,
-  Calendar,
   User,
-  Stethoscope,
-  Microscope,
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle,
-  ChevronDown,
   Download,
-  Eye,
-  FileCheck,
-  FileX,
   Loader,
-  Activity,
-  TrendingUp,
-  BarChart3,
   ClipboardList,
-  Bell,
+  ChevronDown,
+  ChevronUp,
+  Send,
+  FileCheck,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../services/api";
@@ -55,15 +45,20 @@ interface TestReport {
   };
   symptoms: string;
   suspected_disease: string;
+  clinical_notes: string;
   test_results?: string;
   test_report_url?: string;
+  results_summary?: string;
+  test_conclusion?: string;
+  recommendations?: string;
   completed_date?: string;
   createdAt: string;
+  assigned_date: string;
+  mlt_notes?: string;
 }
 
 const DoctorTestReports = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [testReports, setTestReports] = useState<TestReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<TestReport | null>(null);
@@ -73,6 +68,10 @@ const DoctorTestReports = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [patients, setPatients] = useState<any[]>([]);
   const [mlts, setMlts] = useState<any[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState({
+    request: true,
+    reports: true,
+  });
 
   // Form state for creating test
   const [formData, setFormData] = useState({
@@ -107,7 +106,7 @@ const DoctorTestReports = () => {
       if (response.data.success) {
         setTestReports(response.data.data);
         setStats(response.data.statistics);
-        if (response.data.data.length > 0) {
+        if (response.data.data.length > 0 && !selectedReport) {
           setSelectedReport(response.data.data[0]);
         }
       }
@@ -211,11 +210,31 @@ const DoctorTestReports = () => {
 
   const getStatusBadge = (status: string) => {
     const configs = {
-      pending: { color: "bg-yellow-100 text-yellow-800", icon: Clock },
-      assigned: { color: "bg-blue-100 text-blue-800", icon: User },
-      "in-progress": { color: "bg-purple-100 text-purple-800", icon: Loader },
-      completed: { color: "bg-green-100 text-green-800", icon: CheckCircle },
-      cancelled: { color: "bg-red-100 text-red-800", icon: XCircle },
+      pending: {
+        color: "bg-yellow-100 text-yellow-800",
+        icon: Clock,
+        label: "Pending",
+      },
+      assigned: {
+        color: "bg-blue-100 text-blue-800",
+        icon: User,
+        label: "Assigned",
+      },
+      "in-progress": {
+        color: "bg-purple-100 text-purple-800",
+        icon: Loader,
+        label: "In Progress",
+      },
+      completed: {
+        color: "bg-green-100 text-green-800",
+        icon: CheckCircle,
+        label: "Completed",
+      },
+      cancelled: {
+        color: "bg-red-100 text-red-800",
+        icon: XCircle,
+        label: "Cancelled",
+      },
     };
     const config = configs[status as keyof typeof configs] || configs.pending;
     const Icon = config.icon;
@@ -224,23 +243,23 @@ const DoctorTestReports = () => {
         className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.color}`}
       >
         <Icon className="h-4 w-4 mr-1" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {config.label}
       </span>
     );
   };
 
   const getPriorityBadge = (priority: string) => {
     const configs = {
-      routine: { color: "bg-gray-100 text-gray-800" },
-      urgent: { color: "bg-orange-100 text-orange-800" },
-      emergency: { color: "bg-red-100 text-red-800" },
+      routine: { color: "bg-gray-100 text-gray-800", label: "Routine" },
+      urgent: { color: "bg-orange-100 text-orange-800", label: "Urgent" },
+      emergency: { color: "bg-red-100 text-red-800", label: "Emergency" },
     };
     const config = configs[priority as keyof typeof configs] || configs.routine;
     return (
       <span
         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}
       >
-        {priority.charAt(0).toUpperCase() + priority.slice(1)}
+        {config.label}
       </span>
     );
   };
@@ -266,16 +285,16 @@ const DoctorTestReports = () => {
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-emerald-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Test Reports</h1>
             <p className="text-gray-600 mt-1">
-              Manage and track all test requests
+              Request tests and view results from MLT
             </p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="mt-4 md:mt-0 px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all flex items-center space-x-2 shadow-lg hover:shadow-xl"
+            className="px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all flex items-center space-x-2 shadow-lg hover:shadow-xl"
           >
             <Plus className="h-5 w-5" />
             <span>New Test Request</span>
@@ -284,7 +303,7 @@ const DoctorTestReports = () => {
 
         {/* Statistics Cards */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             {[
               {
                 label: "Total",
@@ -310,6 +329,12 @@ const DoctorTestReports = () => {
                 color: "bg-green-50 text-green-600",
                 icon: CheckCircle,
               },
+              {
+                label: "Cancelled",
+                value: stats.cancelled || 0,
+                color: "bg-red-50 text-red-600",
+                icon: XCircle,
+              },
             ].map((stat, index) => {
               const Icon = stat.icon;
               return (
@@ -326,294 +351,362 @@ const DoctorTestReports = () => {
           </div>
         )}
 
-        {/* Filters and Search */}
-        <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-          <div className="flex flex-wrap gap-4 items-center justify-between">
-            <div className="flex flex-wrap gap-2">
-              {[
-                "all",
-                "pending",
-                "assigned",
-                "in-progress",
-                "completed",
-                "cancelled",
-              ].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setFilter(status)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filter === status
-                      ? "bg-teal-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </button>
-              ))}
+        {/* SECTION 1: Request Test from MLT */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
+          <button
+            onClick={() =>
+              setIsDropdownOpen({
+                ...isDropdownOpen,
+                request: !isDropdownOpen.request,
+              })
+            }
+            className="w-full px-6 py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white flex items-center justify-between hover:from-teal-600 hover:to-emerald-600 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <Send className="h-6 w-6" />
+              <span className="text-lg font-semibold">
+                Request Test from MLT
+              </span>
+              <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
+                {stats?.pending || 0} Pending
+              </span>
             </div>
-            <div className="relative">
-              <Search className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by patient, test, MLT..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 w-64"
-              />
+            {isDropdownOpen.request ? (
+              <ChevronUp className="h-6 w-6" />
+            ) : (
+              <ChevronDown className="h-6 w-6" />
+            )}
+          </button>
+
+          {isDropdownOpen.request && (
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Request Form - Simplified */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-700">
+                    Quick Test Request
+                  </h3>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Patient *
+                    </label>
+                    <select
+                      value={formData.patientId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, patientId: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                    >
+                      <option value="">Select patient</option>
+                      {patients.map((patient) => (
+                        <option key={patient._id} value={patient._id}>
+                          {patient.name} - {patient.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select MLT *
+                    </label>
+                    <select
+                      value={formData.mltId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, mltId: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                    >
+                      <option value="">Select MLT</option>
+                      {mlts.map((mlt) => (
+                        <option key={mlt._id} value={mlt._id}>
+                          {mlt.name} - {mlt.specialization}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Test Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.test_name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, test_name: e.target.value })
+                      }
+                      placeholder="e.g., Complete Blood Count"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Category
+                      </label>
+                      <select
+                        value={formData.test_category}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            test_category: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                      >
+                        <option value="Hematology">Hematology</option>
+                        <option value="Microbiology">Microbiology</option>
+                        <option value="Biochemistry">Biochemistry</option>
+                        <option value="Pathology">Pathology</option>
+                        <option value="Radiology">Radiology</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Priority
+                      </label>
+                      <select
+                        value={formData.test_priority}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            test_priority: e.target.value as any,
+                          })
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                      >
+                        <option value="routine">Routine</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="emergency">Emergency</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Symptoms / Suspected Disease
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.symptoms}
+                      onChange={(e) =>
+                        setFormData({ ...formData, symptoms: e.target.value })
+                      }
+                      placeholder="e.g., Fatigue, dizziness, pale skin"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleCreateTest}
+                    className="w-full px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Send className="h-5 w-5" />
+                    <span>Send Request to MLT</span>
+                  </button>
+                </div>
+
+                {/* Recent Requests */}
+                <div>
+                  <h3 className="font-semibold text-gray-700 mb-3">
+                    Recent Requests
+                  </h3>
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {testReports
+                      .filter(
+                        (r) =>
+                          r.status === "pending" || r.status === "assigned",
+                      )
+                      .slice(0, 5)
+                      .map((report) => (
+                        <div
+                          key={report._id}
+                          className="bg-gray-50 rounded-lg p-3 border border-gray-200"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {report.test_name}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Patient: {report.patientId?.name}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                MLT: {report.mltId?.name}
+                              </p>
+                            </div>
+                            {getStatusBadge(report.status)}
+                          </div>
+                        </div>
+                      ))}
+                    {testReports.filter(
+                      (r) => r.status === "pending" || r.status === "assigned",
+                    ).length === 0 && (
+                      <p className="text-gray-500 text-center py-4">
+                        No pending requests
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Test List */}
-          <div className="lg:col-span-1 space-y-3 max-h-[600px] overflow-y-auto pr-2">
-            {filteredReports.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500">No test reports found</p>
-              </div>
+        {/* SECTION 2: View Test Reports */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <button
+            onClick={() =>
+              setIsDropdownOpen({
+                ...isDropdownOpen,
+                reports: !isDropdownOpen.reports,
+              })
+            }
+            className="w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white flex items-center justify-between hover:from-blue-600 hover:to-cyan-600 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <FileCheck className="h-6 w-6" />
+              <span className="text-lg font-semibold">View Test Reports</span>
+              <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
+                {stats?.completed || 0} Completed
+              </span>
+            </div>
+            {isDropdownOpen.reports ? (
+              <ChevronUp className="h-6 w-6" />
             ) : (
-              filteredReports.map((report) => (
-                <button
-                  key={report._id}
-                  onClick={() => setSelectedReport(report)}
-                  className={`w-full text-left bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md ${
-                    selectedReport?._id === report._id
-                      ? "ring-2 ring-teal-500 border-transparent"
-                      : "border border-gray-200"
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <p className="font-semibold text-gray-900 truncate">
-                          {report.test_name}
-                        </p>
-                        {getPriorityBadge(report.test_priority)}
-                      </div>
-                      <p className="text-sm text-gray-600 truncate">
-                        Patient: {report.patientId?.name}
-                      </p>
-                      <p className="text-sm text-gray-500 truncate">
-                        MLT: {report.mltId?.name}
-                      </p>
-                      <div className="flex items-center mt-1 text-xs text-gray-400">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {new Date(report.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="ml-2">{getStatusBadge(report.status)}</div>
-                  </div>
-                </button>
-              ))
+              <ChevronDown className="h-6 w-6" />
             )}
-          </div>
+          </button>
 
-          {/* Test Details */}
-          <div className="lg:col-span-2">
-            {selectedReport ? (
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-6 pb-4 border-b">
-                  <div>
-                    <div className="flex items-center space-x-3">
-                      <h2 className="text-xl font-bold text-gray-900">
-                        {selectedReport.test_name}
-                      </h2>
-                      {getPriorityBadge(selectedReport.test_priority)}
-                      {getStatusBadge(selectedReport.status)}
-                    </div>
-                    <p className="text-gray-600 mt-1">
-                      {selectedReport.test_category}
-                    </p>
-                  </div>
-                  {selectedReport.status === "completed" &&
-                    selectedReport.test_report_url && (
-                      <a
-                        href={selectedReport.test_report_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center space-x-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        <span>Download Report</span>
-                      </a>
-                    )}
+          {isDropdownOpen.reports && (
+            <div className="p-6">
+              {/* Filters */}
+              <div className="flex flex-wrap gap-4 items-center justify-between mb-4">
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "all",
+                    "pending",
+                    "in-progress",
+                    "completed",
+                    "cancelled",
+                  ].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => setFilter(status)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        filter === status
+                          ? "bg-teal-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </button>
+                  ))}
                 </div>
-
-                {/* Patient Info */}
-                <div className="bg-teal-50 rounded-lg p-4 mb-6">
-                  <h3 className="font-semibold text-gray-700 mb-2 flex items-center">
-                    <User className="h-4 w-4 mr-2" />
-                    Patient Information
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">Name</p>
-                      <p className="font-medium">
-                        {selectedReport.patientId?.name}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Email</p>
-                      <p className="font-medium">
-                        {selectedReport.patientId?.email}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Phone</p>
-                      <p className="font-medium">
-                        {selectedReport.patientId?.phone}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Age/Gender</p>
-                      <p className="font-medium">
-                        {selectedReport.patientId?.profile?.age || "N/A"} /
-                        {selectedReport.patientId?.profile?.gender || "N/A"}
-                      </p>
-                    </div>
-                  </div>
+                <div className="relative">
+                  <Search className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search reports..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 w-64"
+                  />
                 </div>
+              </div>
 
-                {/* MLT Info */}
-                <div className="bg-purple-50 rounded-lg p-4 mb-6">
-                  <h3 className="font-semibold text-gray-700 mb-2 flex items-center">
-                    <Microscope className="h-4 w-4 mr-2" />
-                    Assigned MLT
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">Name</p>
-                      <p className="font-medium">
-                        {selectedReport.mltId?.name}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Specialization</p>
-                      <p className="font-medium">
-                        {selectedReport.mltId?.specialization}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Status</p>
-                      <p className="font-medium capitalize">
-                        {selectedReport.status}
-                      </p>
-                    </div>
+              {/* Reports List */}
+              <div className="grid grid-cols-1 gap-4">
+                {filteredReports.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500">No test reports found</p>
                   </div>
-                </div>
-
-                {/* Clinical Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">
-                      Suspected Disease
-                    </h3>
-                    <p className="text-gray-600">
-                      {selectedReport.suspected_disease || "Not specified"}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">
-                      Symptoms
-                    </h3>
-                    <p className="text-gray-600">
-                      {selectedReport.symptoms || "Not specified"}
-                    </p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <h3 className="font-semibold text-gray-700 mb-2">
-                      Clinical Notes
-                    </h3>
-                    <p className="text-gray-600">
-                      {selectedReport.clinical_notes || "Not specified"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Test Results (if completed) */}
-                {selectedReport.status === "completed" && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                    <h3 className="font-semibold text-green-800 mb-3 flex items-center">
-                      <FileCheck className="h-5 w-5 mr-2" />
-                      Test Results
-                    </h3>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm text-green-700 font-medium">
-                          Results
-                        </p>
-                        <p className="text-gray-700">
-                          {selectedReport.test_results || "No results provided"}
-                        </p>
+                ) : (
+                  filteredReports.map((report) => (
+                    <div
+                      key={report._id}
+                      className={`border rounded-lg p-4 transition-all hover:shadow-md cursor-pointer ${
+                        selectedReport?._id === report._id
+                          ? "border-teal-500 bg-teal-50"
+                          : "border-gray-200 hover:border-teal-300"
+                      }`}
+                      onClick={() => setSelectedReport(report)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3">
+                            <h3 className="font-semibold text-gray-900">
+                              {report.test_name}
+                            </h3>
+                            {getPriorityBadge(report.test_priority)}
+                            {getStatusBadge(report.status)}
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm">
+                            <div>
+                              <span className="text-gray-500">Patient:</span>
+                              <span className="ml-1 font-medium">
+                                {report.patientId?.name}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">MLT:</span>
+                              <span className="ml-1 font-medium">
+                                {report.mltId?.name}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Category:</span>
+                              <span className="ml-1">
+                                {report.test_category}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Date:</span>
+                              <span className="ml-1">
+                                {new Date(
+                                  report.createdAt,
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          {report.status === "completed" &&
+                            report.test_results && (
+                              <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                                <p className="text-sm text-green-800">
+                                  <CheckCircle className="h-4 w-4 inline mr-1" />
+                                  Report ready - Click to view details
+                                </p>
+                              </div>
+                            )}
+                        </div>
+                        {report.status === "completed" &&
+                          report.test_report_url && (
+                            <a
+                              href={report.test_report_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-4 px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center space-x-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Download className="h-4 w-4" />
+                              <span>Download</span>
+                            </a>
+                          )}
                       </div>
-                      {selectedReport.results_summary && (
-                        <div>
-                          <p className="text-sm text-green-700 font-medium">
-                            Summary
-                          </p>
-                          <p className="text-gray-700">
-                            {selectedReport.results_summary}
-                          </p>
-                        </div>
-                      )}
-                      {selectedReport.test_conclusion && (
-                        <div>
-                          <p className="text-sm text-green-700 font-medium">
-                            Conclusion
-                          </p>
-                          <p className="text-gray-700">
-                            {selectedReport.test_conclusion}
-                          </p>
-                        </div>
-                      )}
-                      {selectedReport.recommendations && (
-                        <div>
-                          <p className="text-sm text-green-700 font-medium">
-                            Recommendations
-                          </p>
-                          <p className="text-gray-700">
-                            {selectedReport.recommendations}
-                          </p>
-                        </div>
-                      )}
-                      {selectedReport.completed_date && (
-                        <p className="text-xs text-gray-500">
-                          Completed on:{" "}
-                          {new Date(
-                            selectedReport.completed_date,
-                          ).toLocaleString()}
-                        </p>
-                      )}
                     </div>
-                  </div>
-                )}
-
-                {/* MLT Notes */}
-                {selectedReport.mlt_notes && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-700 mb-2">
-                      MLT Notes
-                    </h3>
-                    <p className="text-gray-600">{selectedReport.mlt_notes}</p>
-                  </div>
+                  ))
                 )}
               </div>
-            ) : (
-              <div className="bg-white rounded-xl p-12 text-center">
-                <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">
-                  Select a test report to view details
-                </p>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Create Test Modal */}
+      {/* Create Test Modal - Full version */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -758,7 +851,7 @@ const DoctorTestReports = () => {
                 </div>
               </div>
 
-              {/* Symptoms & Clinical Notes */}
+              {/* Symptoms */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Symptoms
@@ -774,6 +867,7 @@ const DoctorTestReports = () => {
                 />
               </div>
 
+              {/* Clinical Notes */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Clinical Notes
@@ -807,80 +901,6 @@ const DoctorTestReports = () => {
                 />
               </div>
 
-              {/* Medications */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Medications
-                </label>
-                {formData.medications.map((med, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2"
-                  >
-                    <input
-                      type="text"
-                      placeholder="Medication name"
-                      value={med.name}
-                      onChange={(e) => {
-                        const newMeds = [...formData.medications];
-                        newMeds[index].name = e.target.value;
-                        setFormData({ ...formData, medications: newMeds });
-                      }}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Dosage"
-                      value={med.dosage}
-                      onChange={(e) => {
-                        const newMeds = [...formData.medications];
-                        newMeds[index].dosage = e.target.value;
-                        setFormData({ ...formData, medications: newMeds });
-                      }}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Frequency"
-                      value={med.frequency}
-                      onChange={(e) => {
-                        const newMeds = [...formData.medications];
-                        newMeds[index].frequency = e.target.value;
-                        setFormData({ ...formData, medications: newMeds });
-                      }}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Duration"
-                      value={med.duration}
-                      onChange={(e) => {
-                        const newMeds = [...formData.medications];
-                        newMeds[index].duration = e.target.value;
-                        setFormData({ ...formData, medications: newMeds });
-                      }}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                    />
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      medications: [
-                        ...formData.medications,
-                        { name: "", dosage: "", frequency: "", duration: "" },
-                      ],
-                    })
-                  }
-                  className="text-sm text-teal-600 hover:text-teal-700"
-                >
-                  + Add Medication
-                </button>
-              </div>
-
-              {/* Form Actions */}
               <div className="flex justify-end space-x-3 pt-4 border-t">
                 <button
                   type="button"

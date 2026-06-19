@@ -8,12 +8,13 @@ import Login from "./components/auth/login";
 import AdminDoctors from "./pages/adddoctors/adminDoctors";
 import OurDoctors from "./pages/OurDoctors/ourDoctors";
 import AdminMLTs from "./pages/addMLT/adminMLT";
-import AddReports from "./pages/AddReports/addReports";
 import ContactUsPage from "./pages/contactus/ContactUs";
 import BookAppointment from "./pages/patients/BookAppointment";
 import AppointmentStatus from "./pages/patients/AppointmentStatus";
 import DoctorAppointments from "./pages/doctor/DoctorAppointments";
 import { useAuth } from "./hooks/useAuth";
+import ViewPatients from "./pages/doctor/viewPatients";
+import DoctorTestReports from "./pages/doctor/DoctorTestReports";
 
 // ✅ Create a separate component for routes that need auth
 function AppRoutes() {
@@ -30,9 +31,9 @@ function AppRoutes() {
         <Route path="/add-doctor" element={<AdminDoctors />} />
         <Route path="/doctors" element={<OurDoctors />} />
         <Route path="/add-mlt" element={<AdminMLTs />} />
-        <Route path="/add-report" element={<AddReports />} />
+        <Route path="/add-report" element={<DoctorTestReports />} />
         <Route path="/contact-us" element={<ContactUsPage />} />
-
+        <Route path="/view-patients" element={<ViewPatients />} />
         <Route path="/book-appointment" element={<BookAppointment />} />
         <Route
           path="/book-appointment/:doctorId"

@@ -15,6 +15,7 @@ import {
   DollarSign,
   Search,
   User,
+  RefreshCw,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -30,6 +31,7 @@ const DoctorAppointments = () => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [doctorNotes, setDoctorNotes] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -47,7 +49,18 @@ const DoctorAppointments = () => {
       if (response.success) {
         setAppointments(response.data);
         setStats(response.statistics);
-        if (response.data.length > 0 && !selectedAppointment) {
+        // Keep selected appointment if it still exists in the list
+        if (selectedAppointment) {
+          const stillExists = response.data.find(
+            (a) => a._id === selectedAppointment._id,
+          );
+          if (stillExists) {
+            setSelectedAppointment(stillExists);
+          } else {
+            // If the selected appointment is no longer in the list, select the first one
+            setSelectedAppointment(response.data[0] || null);
+          }
+        } else if (response.data.length > 0) {
           setSelectedAppointment(response.data[0]);
         }
       }
@@ -59,18 +72,36 @@ const DoctorAppointments = () => {
   };
 
   const handleApprove = async (appointmentId: string) => {
+    setActionLoading(true);
     try {
       const response = await appointmentService.approveAppointment(
         appointmentId,
         doctorNotes || "Approved",
       );
       if (response.success) {
-        toast.success("Appointment approved");
-        loadAppointments();
+        toast.success("Appointment approved successfully!");
+        // ✅ Option 1: Refresh current filter view
+        await loadAppointments();
         setDoctorNotes("");
+
+        // ✅ Option 2: Show notification to view approved
+        toast.success(
+          <div>
+            Appointment approved!
+            <button
+              onClick={() => setFilter("approved")}
+              className="ml-2 underline text-white font-semibold"
+            >
+              View Approved
+            </button>
+          </div>,
+          { duration: 5000 },
+        );
       }
     } catch (error) {
       toast.error("Failed to approve appointment");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -79,6 +110,7 @@ const DoctorAppointments = () => {
       toast.error("Please provide a reason for rejection");
       return;
     }
+    setActionLoading(true);
     try {
       const response = await appointmentService.rejectAppointment(
         appointmentId,
@@ -87,13 +119,15 @@ const DoctorAppointments = () => {
       );
       if (response.success) {
         toast.success("Appointment rejected");
-        loadAppointments();
+        await loadAppointments();
         setShowRejectModal(false);
         setRejectionReason("");
         setDoctorNotes("");
       }
     } catch (error) {
       toast.error("Failed to reject appointment");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -135,16 +169,25 @@ const DoctorAppointments = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Doctor Portal</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your appointments and patient requests
-          </p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Doctor Portal</h1>
+            <p className="text-gray-600 mt-1">
+              Manage your appointments and patient requests
+            </p>
+          </div>
+          <button
+            onClick={loadAppointments}
+            className="px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 flex items-center border border-gray-200"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </button>
         </div>
 
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             {[
               {
                 label: "Total",
@@ -162,6 +205,11 @@ const DoctorAppointments = () => {
                 color: "bg-green-50 text-green-600",
               },
               {
+                label: "Rejected",
+                value: stats.rejected,
+                color: "bg-red-50 text-red-600",
+              },
+              {
                 label: "Completed",
                 value: stats.completed,
                 color: "bg-purple-50 text-purple-600",
@@ -169,7 +217,17 @@ const DoctorAppointments = () => {
             ].map((stat, index) => (
               <div
                 key={index}
-                className={`${stat.color} rounded-xl p-4 text-center`}
+                className={`${stat.color} rounded-xl p-4 text-center cursor-pointer hover:opacity-80 transition-opacity`}
+                onClick={() => {
+                  const filterMap: { [key: string]: string } = {
+                    Total: "all",
+                    Pending: "pending",
+                    Approved: "approved",
+                    Rejected: "rejected",
+                    Completed: "completed",
+                  };
+                  setFilter(filterMap[stat.label] || "all");
+                }}
               >
                 <div className="text-2xl font-bold">{stat.value}</div>
                 <div className="text-sm">{stat.label}</div>
@@ -182,7 +240,7 @@ const DoctorAppointments = () => {
         <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
           <div className="flex flex-wrap gap-4 items-center justify-between">
             <div className="flex flex-wrap gap-2">
-              {["pending", "approved", "rejected", "completed", "all"].map(
+              {["all", "pending", "approved", "rejected", "completed"].map(
                 (status) => (
                   <button
                     key={status}
@@ -194,6 +252,11 @@ const DoctorAppointments = () => {
                     }`}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
+                    {stats && status !== "all" && (
+                      <span className="ml-2 text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                        {stats[status] || 0}
+                      </span>
+                    )}
                   </button>
                 ),
               )}
@@ -205,7 +268,7 @@ const DoctorAppointments = () => {
                 placeholder="Search patients..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 min-w-[200px]"
               />
             </div>
           </div>
@@ -221,6 +284,14 @@ const DoctorAppointments = () => {
                   No appointments{" "}
                   {filter !== "all" ? `with status "${filter}"` : ""}
                 </p>
+                {filter !== "all" && (
+                  <button
+                    onClick={() => setFilter("all")}
+                    className="mt-2 text-sm text-teal-600 hover:text-teal-700"
+                  >
+                    View all appointments
+                  </button>
+                )}
               </div>
             ) : (
               filteredAppointments.map((appointment) => (
@@ -234,31 +305,32 @@ const DoctorAppointments = () => {
                   }`}
                 >
                   <div className="flex justify-between items-start">
-                    <div>
-                      {/* ✅ Show patient ID */}
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 truncate">
                           {appointment.patient_name}
                         </p>
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex-shrink-0">
                           ID:{" "}
                           {appointment.patientId?._id?.slice(-6) ||
                             appointment.patient_email?.slice(0, 8)}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 truncate">
                         {appointment.patient_email}
                       </p>
                       <div className="flex items-center mt-1 text-sm text-gray-500">
-                        <Calendar className="h-3 w-3 mr-1" />
+                        <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
                         {new Date(
                           appointment.appointment_date,
                         ).toLocaleDateString()}
-                        <Clock className="h-3 w-3 ml-2 mr-1" />
+                        <Clock className="h-3 w-3 ml-2 mr-1 flex-shrink-0" />
                         {appointment.appointment_time}
                       </div>
                     </div>
-                    {getStatusBadge(appointment.appointment_status)}
+                    <div className="ml-2 flex-shrink-0">
+                      {getStatusBadge(appointment.appointment_status)}
+                    </div>
                   </div>
                 </button>
               ))
@@ -306,8 +378,9 @@ const DoctorAppointments = () => {
                   </div>
                   {getStatusBadge(selectedAppointment.appointment_status)}
                 </div>
-                {/* ✅ Patient ID Card */}
-                <div className="md:col-span-2 bg-teal-50 rounded-lg p-4 border border-teal-200">
+
+                {/* Patient ID Card */}
+                <div className="mb-6 bg-teal-50 rounded-lg p-4 border border-teal-200">
                   <div className="flex items-start space-x-3">
                     <div className="p-2 bg-teal-100 rounded-full">
                       <User className="h-5 w-5 text-teal-600" />
@@ -429,14 +502,22 @@ const DoctorAppointments = () => {
                     <div className="flex flex-wrap gap-3">
                       <button
                         onClick={() => handleApprove(selectedAppointment._id)}
-                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center"
+                        disabled={actionLoading}
+                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <CheckCircle className="h-5 w-5 mr-2" />
-                        Approve
+                        {actionLoading ? (
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-5 w-5 mr-2" />
+                            Approve
+                          </>
+                        )}
                       </button>
                       <button
                         onClick={() => setShowRejectModal(true)}
-                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center"
+                        disabled={actionLoading}
+                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <XCircle className="h-5 w-5 mr-2" />
                         Reject
@@ -456,31 +537,55 @@ const DoctorAppointments = () => {
                           : "bg-gray-50 border-gray-200"
                     }`}
                   >
-                    <p className="font-medium text-gray-700">Response</p>
-                    {selectedAppointment.appointment_status === "approved" && (
+                    <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-green-700">
-                          {selectedAppointment.doctor_notes || "Approved"}
-                        </p>
-                        {selectedAppointment.approval_date && (
-                          <p className="text-sm text-gray-500 mt-1">
-                            Approved on:{" "}
-                            {new Date(
-                              selectedAppointment.approval_date,
-                            ).toLocaleDateString()}
-                          </p>
+                        <p className="font-medium text-gray-700">Response</p>
+                        {selectedAppointment.appointment_status ===
+                          "approved" && (
+                          <div className="mt-1">
+                            <p className="text-green-700">
+                              {selectedAppointment.doctor_notes || "Approved"}
+                            </p>
+                            {selectedAppointment.approval_date && (
+                              <p className="text-sm text-gray-500 mt-1">
+                                Approved on:{" "}
+                                {new Date(
+                                  selectedAppointment.approval_date,
+                                ).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {selectedAppointment.appointment_status ===
+                          "rejected" && (
+                          <div className="mt-1">
+                            <p className="text-red-700 font-medium">Rejected</p>
+                            <p className="text-red-600">
+                              {selectedAppointment.rejection_reason ||
+                                "No reason provided"}
+                            </p>
+                          </div>
                         )}
                       </div>
-                    )}
-                    {selectedAppointment.appointment_status === "rejected" && (
-                      <div>
-                        <p className="text-red-700 font-medium">Rejected</p>
-                        <p className="text-red-600">
-                          {selectedAppointment.rejection_reason ||
-                            "No reason provided"}
-                        </p>
-                      </div>
-                    )}
+                      {/* View in list button */}
+                      <button
+                        onClick={() => {
+                          const statusMap: { [key: string]: string } = {
+                            approved: "approved",
+                            rejected: "rejected",
+                            completed: "completed",
+                            cancelled: "cancelled",
+                          };
+                          setFilter(
+                            statusMap[selectedAppointment.appointment_status] ||
+                              "all",
+                          );
+                        }}
+                        className="text-sm text-teal-600 hover:text-teal-700 flex items-center"
+                      >
+                        View all {selectedAppointment.appointment_status}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -531,9 +636,14 @@ const DoctorAppointments = () => {
               </button>
               <button
                 onClick={() => handleReject(selectedAppointment._id)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                disabled={actionLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Reject Appointment
+                {actionLoading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  "Reject Appointment"
+                )}
               </button>
             </div>
           </div>

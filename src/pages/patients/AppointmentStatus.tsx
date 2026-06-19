@@ -51,7 +51,17 @@ const AppointmentStatus = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  // ✅ FIXED: Add null check for status
+  const getStatusBadge = (status: string | undefined) => {
+    if (!status) {
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+          <ClockIcon className="h-4 w-4 mr-1" />
+          Unknown
+        </span>
+      );
+    }
+
     const configs = {
       pending: { color: "bg-yellow-100 text-yellow-800", icon: ClockIcon },
       approved: { color: "bg-green-100 text-green-800", icon: CheckCircle },
@@ -71,7 +81,21 @@ const AppointmentStatus = () => {
     );
   };
 
-  const getPaymentStatusBadge = (status: string) => {
+  // ✅ FIXED: Add null check for status in filter buttons
+  const getStatusLabel = (status: string) => {
+    if (!status) return "Unknown";
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const getPaymentStatusBadge = (status: string | undefined) => {
+    if (!status) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+          Unknown
+        </span>
+      );
+    }
+
     if (status === "verified") {
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -185,7 +209,7 @@ const AppointmentStatus = () => {
                   : "bg-white text-gray-700 hover:bg-gray-100"
               }`}
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
+              {getStatusLabel(status)}
             </button>
           ))}
         </div>
@@ -381,7 +405,7 @@ const AppointmentStatus = () => {
 
                 {/* Payment Screenshot */}
                 {selectedAppointment.screenshot_url && (
-                  <div className="border rounded-lg p-4">
+                  <div className="border rounded-lg p-4 mb-6">
                     <p className="text-sm font-medium text-gray-700 mb-2">
                       Payment Screenshot
                     </p>

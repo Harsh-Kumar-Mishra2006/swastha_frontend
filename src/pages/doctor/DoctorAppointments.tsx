@@ -14,7 +14,7 @@ import {
   Mail,
   DollarSign,
   Search,
-  User
+  User,
 } from "lucide-react";
 import toast from "react-hot-toast";
 

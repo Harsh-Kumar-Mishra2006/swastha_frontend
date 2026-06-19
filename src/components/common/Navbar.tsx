@@ -34,10 +34,12 @@ const Navbar = () => {
   } else if (isAuthenticated && user?.role === "doctor") {
     navLinks.push({
       name: "Active appointments",
-      href: "/active-appointments",
+      href: "/doctor/active-appointments",
     });
     navLinks.push({ name: "View Patients", href: "/view-patients" });
     navLinks.push({ name: "Add Report", href: "/add-report" });
+  } else if (isAuthenticated && user?.role === "patient") {
+    navLinks.push({ name: "My Appointments", href: "/appointments/status" });
   }
 
   useEffect(() => {

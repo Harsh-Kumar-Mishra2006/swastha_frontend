@@ -47,7 +47,7 @@ function AppRoutes() {
           element={isDoctor ? <DoctorAppointments /> : <Navigate to="/" />}
         />
         <Route
-          path="/doctor/dashboard"
+          path="/doctor/active-appointments"
           element={isDoctor ? <DoctorAppointments /> : <Navigate to="/" />}
         />
         {/* Catch all - redirect to home */}

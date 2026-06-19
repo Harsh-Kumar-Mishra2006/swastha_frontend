@@ -40,6 +40,8 @@ const Navbar = () => {
     navLinks.push({ name: "Add Report", href: "/add-report" });
   } else if (isAuthenticated && user?.role === "patient") {
     navLinks.push({ name: "My Appointments", href: "/appointments/status" });
+  } else if (isAuthenticated && user?.role === "MLT") {
+    navLinks.push({ name: "Test Requests", href: "/mlt-test-requests" });
   }
 
   useEffect(() => {

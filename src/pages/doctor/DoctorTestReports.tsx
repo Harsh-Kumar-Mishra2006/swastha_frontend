@@ -10,9 +10,9 @@ import {
   Activity,
   Heart,
   Pill,
+  Send,
   Plus,
   Trash2,
-  Send,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import testReportService from "../../services/testReportService";
@@ -24,21 +24,23 @@ import {
 const DoctorCreateTestRequest = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [_loading, _setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [mlts, setMlts] = useState<any[]>([]);
-  const [patients, setPatients] = useState<any[]>([]);
 
-  // Form state - all fields manual input
+  // Form state - ALL fields are manual input (no dropdowns)
   const [formData, setFormData] = useState<CreateTestRequestData>({
+    // Doctor info - auto-filled from logged in user
     doctorId: user?.id || "",
     doctor_name: user?.name || "",
     doctor_email: user?.email || "",
     doctor_specialization: user?.profile?.specialization || "",
+
+    // MLT info - MANUAL INPUT
     mltId: "",
     mlt_name: "",
     mlt_email: "",
     mlt_specialization: "",
+
+    // Patient info - MANUAL INPUT
     patientId: "",
     patient_name: "",
     patient_email: "",
@@ -46,20 +48,28 @@ const DoctorCreateTestRequest = () => {
     patient_age: "",
     patient_gender: "",
     patient_bloodGroup: "",
+
+    // Appointment reference - optional
     appointmentId: "",
+
+    // Test details - MANUAL INPUT
     test_name: "",
     test_category: "Hematology",
     test_description: "",
     test_priority: "routine",
     test_instructions: "",
+
+    // Clinical details - MANUAL INPUT
     suspected_disease: "",
     symptoms: "",
     clinical_notes: "",
     medical_history: "",
+
+    // Medications
     medications: [{ name: "", dosage: "", frequency: "", duration: "" }],
   });
 
-  // Load doctor data
+  // Set doctor info from logged in user
   useEffect(() => {
     if (user) {
       setFormData((prev) => ({
@@ -69,34 +79,8 @@ const DoctorCreateTestRequest = () => {
         doctor_email: user.email || "",
         doctor_specialization: user.profile?.specialization || "",
       }));
-      fetchMLTs();
-      fetchPatients();
     }
   }, [user]);
-
-  const fetchMLTs = async () => {
-    try {
-      const response = await testReportService.getMLTs();
-      if (response.success) {
-        setMlts(response.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch MLTs:", error);
-    }
-  };
-
-  const fetchPatients = async () => {
-    try {
-      const response = await testReportService.getPatientsForDoctor(
-        user?.id || "",
-      );
-      if (response.success) {
-        setPatients(response.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch patients:", error);
-    }
-  };
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -141,49 +125,24 @@ const DoctorCreateTestRequest = () => {
     }));
   };
 
-  // Handle MLT selection from dropdown (populates MLT fields)
-  const handleMLTSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const mltId = e.target.value;
-    const selectedMLT = mlts.find((m) => m._id === mltId);
-    if (selectedMLT) {
-      setFormData((prev) => ({
-        ...prev,
-        mltId: selectedMLT._id,
-        mlt_name: selectedMLT.name,
-        mlt_email: selectedMLT.email,
-        mlt_specialization: selectedMLT.specialization,
-      }));
-    }
-  };
-
-  // Handle Patient selection from dropdown (populates patient fields)
-  const handlePatientSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const patientId = e.target.value;
-    const selectedPatient = patients.find((p) => p._id === patientId);
-    if (selectedPatient) {
-      setFormData((prev) => ({
-        ...prev,
-        patientId: selectedPatient._id,
-        patient_name: selectedPatient.name,
-        patient_email: selectedPatient.email,
-        patient_phone: selectedPatient.phone || "",
-        patient_age: selectedPatient.profile?.age || "",
-        patient_gender: selectedPatient.profile?.gender || "",
-        patient_bloodGroup: selectedPatient.profile?.bloodGroup || "",
-      }));
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate required fields
-    if (!formData.mltId || !formData.mlt_name) {
-      toast.error("Please select an MLT");
+    if (!formData.mlt_name || !formData.mlt_email) {
+      toast.error("Please enter MLT name and email");
       return;
     }
-    if (!formData.patientId || !formData.patient_name) {
-      toast.error("Please select a patient");
+    if (!formData.mlt_specialization) {
+      toast.error("Please enter MLT specialization");
+      return;
+    }
+    if (
+      !formData.patientId ||
+      !formData.patient_name ||
+      !formData.patient_email
+    ) {
+      toast.error("Please enter patient ID, name and email");
       return;
     }
     if (!formData.test_name) {
@@ -229,7 +188,7 @@ const DoctorCreateTestRequest = () => {
               Create Test Request
             </h1>
             <p className="text-gray-600 mt-1">
-              Fill in the details to request a test from MLT
+              Manually fill all details to request a test from MLT
             </p>
           </div>
           <button
@@ -245,11 +204,11 @@ const DoctorCreateTestRequest = () => {
           onSubmit={handleSubmit}
           className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6"
         >
-          {/* Doctor Info - Read Only */}
+          {/* Doctor Info - Auto-filled from logged in user (Read Only) */}
           <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
             <h3 className="font-semibold text-teal-800 mb-3 flex items-center">
               <Stethoscope className="h-5 w-5 mr-2" />
-              Doctor Information
+              Doctor Information (Auto-filled)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div>
@@ -273,113 +232,183 @@ const DoctorCreateTestRequest = () => {
             </div>
           </div>
 
-          {/* Select MLT */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select MLT *
-            </label>
-            <select
-              value={formData.mltId}
-              onChange={handleMLTSelect}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-            >
-              <option value="">Select MLT</option>
-              {mlts.map((mlt) => (
-                <option key={mlt._id} value={mlt._id}>
-                  {mlt.name} - {mlt.specialization} ({mlt.department})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* MLT Details - Auto populated */}
-          {formData.mltId && (
-            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-              <h3 className="font-semibold text-purple-800 mb-3 flex items-center">
-                <Microscope className="h-5 w-5 mr-2" />
-                MLT Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Name</p>
-                  <p className="font-medium text-gray-900">
-                    {formData.mlt_name}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Email</p>
-                  <p className="font-medium text-gray-900">
-                    {formData.mlt_email}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Specialization</p>
-                  <p className="font-medium text-gray-900">
-                    {formData.mlt_specialization}
-                  </p>
-                </div>
+          {/* MLT Information - MANUAL INPUT */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Microscope className="h-5 w-5 mr-2 text-purple-600" />
+              MLT Information (Manual Entry)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  MLT Name *
+                </label>
+                <input
+                  type="text"
+                  name="mlt_name"
+                  value={formData.mlt_name}
+                  onChange={handleInputChange}
+                  placeholder="Enter MLT full name"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  MLT Email *
+                </label>
+                <input
+                  type="email"
+                  name="mlt_email"
+                  value={formData.mlt_email}
+                  onChange={handleInputChange}
+                  placeholder="Enter MLT email"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  MLT Specialization *
+                </label>
+                <input
+                  type="text"
+                  name="mlt_specialization"
+                  value={formData.mlt_specialization}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Hematology, Microbiology"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  MLT ID
+                </label>
+                <input
+                  type="text"
+                  name="mltId"
+                  value={formData.mltId}
+                  onChange={handleInputChange}
+                  placeholder="Enter MLT ID (if known)"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
               </div>
             </div>
-          )}
-
-          {/* Select Patient */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select Patient *
-            </label>
-            <select
-              value={formData.patientId}
-              onChange={handlePatientSelect}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-            >
-              <option value="">Select Patient</option>
-              {patients.map((patient) => (
-                <option key={patient._id} value={patient._id}>
-                  {patient.name} - {patient.email}
-                </option>
-              ))}
-            </select>
           </div>
 
-          {/* Patient Details - Auto populated */}
-          {formData.patientId && (
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
-                <User className="h-5 w-5 mr-2" />
-                Patient Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Name</p>
-                  <p className="font-medium text-gray-900">
-                    {formData.patient_name}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Email</p>
-                  <p className="font-medium text-gray-900">
-                    {formData.patient_email}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Phone</p>
-                  <p className="font-medium text-gray-900">
-                    {formData.patient_phone || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Age/Gender/Blood</p>
-                  <p className="font-medium text-gray-900">
-                    {formData.patient_age || "N/A"} /{" "}
-                    {formData.patient_gender || "N/A"} /{" "}
-                    {formData.patient_bloodGroup || "N/A"}
-                  </p>
-                </div>
+          {/* Patient Information - MANUAL INPUT */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <User className="h-5 w-5 mr-2 text-blue-600" />
+              Patient Information (Manual Entry)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Patient ID *
+                </label>
+                <input
+                  type="text"
+                  name="patientId"
+                  value={formData.patientId}
+                  onChange={handleInputChange}
+                  placeholder="Enter patient ID"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Patient Name *
+                </label>
+                <input
+                  type="text"
+                  name="patient_name"
+                  value={formData.patient_name}
+                  onChange={handleInputChange}
+                  placeholder="Enter patient full name"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Patient Email *
+                </label>
+                <input
+                  type="email"
+                  name="patient_email"
+                  value={formData.patient_email}
+                  onChange={handleInputChange}
+                  placeholder="Enter patient email"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Patient Phone
+                </label>
+                <input
+                  type="text"
+                  name="patient_phone"
+                  value={formData.patient_phone}
+                  onChange={handleInputChange}
+                  placeholder="Enter patient phone number"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Age
+                </label>
+                <input
+                  type="text"
+                  name="patient_age"
+                  value={formData.patient_age}
+                  onChange={handleInputChange}
+                  placeholder="Enter patient age"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Gender
+                </label>
+                <input
+                  type="text"
+                  name="patient_gender"
+                  value={formData.patient_gender}
+                  onChange={handleInputChange}
+                  placeholder="Enter gender"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Blood Group
+                </label>
+                <input
+                  type="text"
+                  name="patient_bloodGroup"
+                  value={formData.patient_bloodGroup}
+                  onChange={handleInputChange}
+                  placeholder="e.g., A+, B-, O+"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Appointment ID (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="appointmentId"
+                  value={formData.appointmentId}
+                  onChange={handleInputChange}
+                  placeholder="Enter appointment ID if applicable"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Test Details */}
+          {/* Test Details - MANUAL INPUT */}
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <Activity className="h-5 w-5 mr-2 text-teal-600" />
@@ -446,7 +475,7 @@ const DoctorCreateTestRequest = () => {
                   name="suspected_disease"
                   value={formData.suspected_disease}
                   onChange={handleInputChange}
-                  placeholder="e.g., Anemia"
+                  placeholder="e.g., Anemia, Infection"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
                 />
               </div>
@@ -481,7 +510,7 @@ const DoctorCreateTestRequest = () => {
             </div>
           </div>
 
-          {/* Clinical Details */}
+          {/* Clinical Details - MANUAL INPUT */}
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <Heart className="h-5 w-5 mr-2 text-red-500" />
@@ -531,7 +560,7 @@ const DoctorCreateTestRequest = () => {
             </div>
           </div>
 
-          {/* Medications */}
+          {/* Medications - MANUAL INPUT */}
           <div className="border-t pt-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -544,7 +573,7 @@ const DoctorCreateTestRequest = () => {
                 className="px-3 py-1 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center space-x-1 text-sm"
               >
                 <Plus className="h-4 w-4" />
-                <span>Add</span>
+                <span>Add Medication</span>
               </button>
             </div>
 

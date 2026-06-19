@@ -15,6 +15,7 @@ import DoctorAppointments from "./pages/doctor/DoctorAppointments";
 import { useAuth } from "./hooks/useAuth";
 import ViewPatients from "./pages/doctor/viewPatients";
 import DoctorCreateTestRequest from "./pages/doctor/DoctorTestReports";
+import MLTTestRequests from "./pages/mlt/MLTTestRequests";
 
 // ✅ Create a separate component for routes that need auth
 function AppRoutes() {
@@ -41,8 +42,6 @@ function AppRoutes() {
         />
         <Route path="/appointments/status" element={<AppointmentStatus />} />
         <Route path="/patient/appointments" element={<AppointmentStatus />} />
-
-        {/* Doctor Routes */}
         <Route
           path="/doctor/appointments"
           element={isDoctor ? <DoctorAppointments /> : <Navigate to="/" />}
@@ -51,7 +50,8 @@ function AppRoutes() {
           path="/doctor/active-appointments"
           element={isDoctor ? <DoctorAppointments /> : <Navigate to="/" />}
         />
-        {/* Catch all - redirect to home */}
+        <Route path="/mlt-test-requests" element={<MLTTestRequests />} />
+
         <Route path="*" element={<Home />} />
       </Routes>
     </Layout>

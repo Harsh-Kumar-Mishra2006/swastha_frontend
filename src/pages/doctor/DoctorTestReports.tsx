@@ -1,86 +1,56 @@
-// pages/doctor/DoctorTestReports.tsx
+// pages/doctor/DoctorCreateTestRequest.tsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import {
   FileText,
-  Plus,
-  Search,
   User,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Download,
-  Loader,
-  ClipboardList,
-  ChevronDown,
-  ChevronUp,
+  Stethoscope,
+  Microscope,
+  Activity,
+  Heart,
+  Pill,
+  Plus,
+  Trash2,
   Send,
-  FileCheck,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import api from "../../services/api";
+import testReportService from "../../services/testReportService";
+import {
+  type CreateTestRequestData,
+  type Medication,
+} from "../../types/testReport";
 
-interface TestReport {
-  _id: string;
-  test_name: string;
-  test_category: string;
-  test_priority: "routine" | "urgent" | "emergency";
-  status: "pending" | "assigned" | "in-progress" | "completed" | "cancelled";
-  patientId: {
-    _id: string;
-    name: string;
-    email: string;
-    phone: string;
-    profile?: {
-      age?: string;
-      gender?: string;
-      bloodGroup?: string;
-    };
-  };
-  mltId: {
-    _id: string;
-    name: string;
-    email: string;
-    specialization: string;
-  };
-  symptoms: string;
-  suspected_disease: string;
-  clinical_notes: string;
-  test_results?: string;
-  test_report_url?: string;
-  results_summary?: string;
-  test_conclusion?: string;
-  recommendations?: string;
-  completed_date?: string;
-  createdAt: string;
-  assigned_date: string;
-  mlt_notes?: string;
-}
-
-const DoctorTestReports = () => {
+const DoctorCreateTestRequest = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [testReports, setTestReports] = useState<TestReport[]>([]);
-  const [selectedReport, setSelectedReport] = useState<TestReport | null>(null);
-  const [filter, setFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [stats, setStats] = useState<any>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [patients, setPatients] = useState<any[]>([]);
+  const navigate = useNavigate();
+  const [_loading, _setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [mlts, setMlts] = useState<any[]>([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState({
-    request: true,
-    reports: true,
-  });
+  const [patients, setPatients] = useState<any[]>([]);
 
-  // Form state for creating test
-  const [formData, setFormData] = useState({
-    patientId: "",
+  // Form state - all fields manual input
+  const [formData, setFormData] = useState<CreateTestRequestData>({
+    doctorId: user?.id || "",
+    doctor_name: user?.name || "",
+    doctor_email: user?.email || "",
+    doctor_specialization: user?.profile?.specialization || "",
     mltId: "",
+    mlt_name: "",
+    mlt_email: "",
+    mlt_specialization: "",
+    patientId: "",
+    patient_name: "",
+    patient_email: "",
+    patient_phone: "",
+    patient_age: "",
+    patient_gender: "",
+    patient_bloodGroup: "",
+    appointmentId: "",
     test_name: "",
     test_category: "Hematology",
-    test_priority: "routine",
     test_description: "",
+    test_priority: "routine",
     test_instructions: "",
     suspected_disease: "",
     symptoms: "",
@@ -89,839 +59,580 @@ const DoctorTestReports = () => {
     medications: [{ name: "", dosage: "", frequency: "", duration: "" }],
   });
 
+  // Load doctor data
   useEffect(() => {
     if (user) {
-      fetchTestReports();
-      fetchPatients();
+      setFormData((prev) => ({
+        ...prev,
+        doctorId: user.id || "",
+        doctor_name: user.name || "",
+        doctor_email: user.email || "",
+        doctor_specialization: user.profile?.specialization || "",
+      }));
       fetchMLTs();
+      fetchPatients();
     }
-  }, [user, filter]);
-
-  const fetchTestReports = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get(`/test-reports/doctor/${user?._id}`, {
-        params: { status: filter !== "all" ? filter : undefined },
-      });
-      if (response.data.success) {
-        setTestReports(response.data.data);
-        setStats(response.data.statistics);
-        if (response.data.data.length > 0 && !selectedReport) {
-          setSelectedReport(response.data.data[0]);
-        }
-      }
-    } catch (error) {
-      toast.error("Failed to load test reports");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPatients = async () => {
-    try {
-      const response = await api.get(
-        `/test-reports/doctor/${user?._id}/patients`,
-      );
-      if (response.data.success) {
-        setPatients(response.data.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch patients:", error);
-    }
-  };
+  }, [user]);
 
   const fetchMLTs = async () => {
     try {
-      const response = await api.get("/admin/mlt");
-      if (response.data.success) {
-        setMlts(response.data.data);
+      const response = await testReportService.getMLTs();
+      if (response.success) {
+        setMlts(response.data);
       }
     } catch (error) {
       console.error("Failed to fetch MLTs:", error);
     }
   };
 
-  const handleCreateTest = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const fetchPatients = async () => {
     try {
-      const selectedPatient = patients.find(
-        (p) => p._id === formData.patientId,
+      const response = await testReportService.getPatientsForDoctor(
+        user?.id || "",
       );
-      const selectedMLT = mlts.find((m) => m._id === formData.mltId);
+      if (response.success) {
+        setPatients(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch patients:", error);
+    }
+  };
 
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleMedicationChange = (
+    index: number,
+    field: keyof Medication,
+    value: string,
+  ) => {
+    const updatedMedications = [...formData.medications];
+    updatedMedications[index] = {
+      ...updatedMedications[index],
+      [field]: value,
+    };
+    setFormData((prev) => ({ ...prev, medications: updatedMedications }));
+  };
+
+  const addMedication = () => {
+    setFormData((prev) => ({
+      ...prev,
+      medications: [
+        ...prev.medications,
+        { name: "", dosage: "", frequency: "", duration: "" },
+      ],
+    }));
+  };
+
+  const removeMedication = (index: number) => {
+    if (formData.medications.length === 1) {
+      toast.error("At least one medication field is required");
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      medications: prev.medications.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Handle MLT selection from dropdown (populates MLT fields)
+  const handleMLTSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const mltId = e.target.value;
+    const selectedMLT = mlts.find((m) => m._id === mltId);
+    if (selectedMLT) {
+      setFormData((prev) => ({
+        ...prev,
+        mltId: selectedMLT._id,
+        mlt_name: selectedMLT.name,
+        mlt_email: selectedMLT.email,
+        mlt_specialization: selectedMLT.specialization,
+      }));
+    }
+  };
+
+  // Handle Patient selection from dropdown (populates patient fields)
+  const handlePatientSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const patientId = e.target.value;
+    const selectedPatient = patients.find((p) => p._id === patientId);
+    if (selectedPatient) {
+      setFormData((prev) => ({
+        ...prev,
+        patientId: selectedPatient._id,
+        patient_name: selectedPatient.name,
+        patient_email: selectedPatient.email,
+        patient_phone: selectedPatient.phone || "",
+        patient_age: selectedPatient.profile?.age || "",
+        patient_gender: selectedPatient.profile?.gender || "",
+        patient_bloodGroup: selectedPatient.profile?.bloodGroup || "",
+      }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate required fields
+    if (!formData.mltId || !formData.mlt_name) {
+      toast.error("Please select an MLT");
+      return;
+    }
+    if (!formData.patientId || !formData.patient_name) {
+      toast.error("Please select a patient");
+      return;
+    }
+    if (!formData.test_name) {
+      toast.error("Please enter test name");
+      return;
+    }
+    if (!formData.test_category) {
+      toast.error("Please select test category");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
       const payload = {
-        doctorId: user?._id,
-        doctor_name: user?.name,
-        doctor_email: user?.email,
+        ...formData,
+        doctorId: user?.id || "",
+        doctor_name: user?.name || "",
+        doctor_email: user?.email || "",
         doctor_specialization: user?.profile?.specialization || "",
-        mltId: formData.mltId,
-        mlt_name: selectedMLT?.name,
-        mlt_email: selectedMLT?.email,
-        mlt_specialization: selectedMLT?.specialization,
-        patientId: formData.patientId,
-        patient_name: selectedPatient?.name,
-        patient_email: selectedPatient?.email,
-        patient_phone: selectedPatient?.phone,
-        patient_age: selectedPatient?.profile?.age || "",
-        patient_gender: selectedPatient?.profile?.gender || "",
-        patient_bloodGroup: selectedPatient?.profile?.bloodGroup || "",
-        test_name: formData.test_name,
-        test_category: formData.test_category,
-        test_description: formData.test_description,
-        test_priority: formData.test_priority,
-        test_instructions: formData.test_instructions,
-        suspected_disease: formData.suspected_disease,
-        symptoms: formData.symptoms,
-        clinical_notes: formData.clinical_notes,
-        medical_history: formData.medical_history,
-        medications: formData.medications.filter((m) => m.name),
       };
 
-      const response = await api.post("/test-reports/create", payload);
-      if (response.data.success) {
+      const response = await testReportService.createTestRequest(payload);
+      if (response.success) {
         toast.success("Test request created successfully!");
-        setShowCreateModal(false);
-        fetchTestReports();
-        resetForm();
+        navigate("/doctor/test-reports");
       }
     } catch (error: any) {
       toast.error(
         error.response?.data?.error || "Failed to create test request",
       );
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      patientId: "",
-      mltId: "",
-      test_name: "",
-      test_category: "Hematology",
-      test_priority: "routine",
-      test_description: "",
-      test_instructions: "",
-      suspected_disease: "",
-      symptoms: "",
-      clinical_notes: "",
-      medical_history: "",
-      medications: [{ name: "", dosage: "", frequency: "", duration: "" }],
-    });
-  };
-
-  const getStatusBadge = (status: string) => {
-    const configs = {
-      pending: {
-        color: "bg-yellow-100 text-yellow-800",
-        icon: Clock,
-        label: "Pending",
-      },
-      assigned: {
-        color: "bg-blue-100 text-blue-800",
-        icon: User,
-        label: "Assigned",
-      },
-      "in-progress": {
-        color: "bg-purple-100 text-purple-800",
-        icon: Loader,
-        label: "In Progress",
-      },
-      completed: {
-        color: "bg-green-100 text-green-800",
-        icon: CheckCircle,
-        label: "Completed",
-      },
-      cancelled: {
-        color: "bg-red-100 text-red-800",
-        icon: XCircle,
-        label: "Cancelled",
-      },
-    };
-    const config = configs[status as keyof typeof configs] || configs.pending;
-    const Icon = config.icon;
-    return (
-      <span
-        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.color}`}
-      >
-        <Icon className="h-4 w-4 mr-1" />
-        {config.label}
-      </span>
-    );
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const configs = {
-      routine: { color: "bg-gray-100 text-gray-800", label: "Routine" },
-      urgent: { color: "bg-orange-100 text-orange-800", label: "Urgent" },
-      emergency: { color: "bg-red-100 text-red-800", label: "Emergency" },
-    };
-    const config = configs[priority as keyof typeof configs] || configs.routine;
-    return (
-      <span
-        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}
-      >
-        {config.label}
-      </span>
-    );
-  };
-
-  const filteredReports = testReports.filter(
-    (report) =>
-      report.patientId?.name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      report.test_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.mltId?.name?.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-emerald-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Test Reports</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Create Test Request
+            </h1>
             <p className="text-gray-600 mt-1">
-              Request tests and view results from MLT
+              Fill in the details to request a test from MLT
             </p>
           </div>
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all flex items-center space-x-2 shadow-lg hover:shadow-xl"
+            onClick={() => navigate("/doctor/test-reports")}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
           >
-            <Plus className="h-5 w-5" />
-            <span>New Test Request</span>
+            <FileText className="h-4 w-4" />
+            <span>View All Requests</span>
           </button>
         </div>
 
-        {/* Statistics Cards */}
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            {[
-              {
-                label: "Total",
-                value: stats.total,
-                color: "bg-blue-50 text-blue-600",
-                icon: ClipboardList,
-              },
-              {
-                label: "Pending",
-                value: stats.pending,
-                color: "bg-yellow-50 text-yellow-600",
-                icon: Clock,
-              },
-              {
-                label: "In Progress",
-                value: stats["in-progress"],
-                color: "bg-purple-50 text-purple-600",
-                icon: Loader,
-              },
-              {
-                label: "Completed",
-                value: stats.completed,
-                color: "bg-green-50 text-green-600",
-                icon: CheckCircle,
-              },
-              {
-                label: "Cancelled",
-                value: stats.cancelled || 0,
-                color: "bg-red-50 text-red-600",
-                icon: XCircle,
-              },
-            ].map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <div
-                  key={index}
-                  className={`${stat.color} rounded-xl p-4 text-center transition-transform hover:scale-105`}
-                >
-                  <Icon className="h-6 w-6 mx-auto mb-2" />
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <div className="text-sm">{stat.label}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* SECTION 1: Request Test from MLT */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
-          <button
-            onClick={() =>
-              setIsDropdownOpen({
-                ...isDropdownOpen,
-                request: !isDropdownOpen.request,
-              })
-            }
-            className="w-full px-6 py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white flex items-center justify-between hover:from-teal-600 hover:to-emerald-600 transition-colors"
-          >
-            <div className="flex items-center space-x-3">
-              <Send className="h-6 w-6" />
-              <span className="text-lg font-semibold">
-                Request Test from MLT
-              </span>
-              <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
-                {stats?.pending || 0} Pending
-              </span>
-            </div>
-            {isDropdownOpen.request ? (
-              <ChevronUp className="h-6 w-6" />
-            ) : (
-              <ChevronDown className="h-6 w-6" />
-            )}
-          </button>
-
-          {isDropdownOpen.request && (
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Request Form - Simplified */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-700">
-                    Quick Test Request
-                  </h3>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Select Patient *
-                    </label>
-                    <select
-                      value={formData.patientId}
-                      onChange={(e) =>
-                        setFormData({ ...formData, patientId: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                    >
-                      <option value="">Select patient</option>
-                      {patients.map((patient) => (
-                        <option key={patient._id} value={patient._id}>
-                          {patient.name} - {patient.email}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Select MLT *
-                    </label>
-                    <select
-                      value={formData.mltId}
-                      onChange={(e) =>
-                        setFormData({ ...formData, mltId: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                    >
-                      <option value="">Select MLT</option>
-                      {mlts.map((mlt) => (
-                        <option key={mlt._id} value={mlt._id}>
-                          {mlt.name} - {mlt.specialization}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Test Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.test_name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, test_name: e.target.value })
-                      }
-                      placeholder="e.g., Complete Blood Count"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Category
-                      </label>
-                      <select
-                        value={formData.test_category}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            test_category: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                      >
-                        <option value="Hematology">Hematology</option>
-                        <option value="Microbiology">Microbiology</option>
-                        <option value="Biochemistry">Biochemistry</option>
-                        <option value="Pathology">Pathology</option>
-                        <option value="Radiology">Radiology</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Priority
-                      </label>
-                      <select
-                        value={formData.test_priority}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            test_priority: e.target.value as any,
-                          })
-                        }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                      >
-                        <option value="routine">Routine</option>
-                        <option value="urgent">Urgent</option>
-                        <option value="emergency">Emergency</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Symptoms / Suspected Disease
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.symptoms}
-                      onChange={(e) =>
-                        setFormData({ ...formData, symptoms: e.target.value })
-                      }
-                      placeholder="e.g., Fatigue, dizziness, pale skin"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleCreateTest}
-                    className="w-full px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center space-x-2"
-                  >
-                    <Send className="h-5 w-5" />
-                    <span>Send Request to MLT</span>
-                  </button>
-                </div>
-
-                {/* Recent Requests */}
-                <div>
-                  <h3 className="font-semibold text-gray-700 mb-3">
-                    Recent Requests
-                  </h3>
-                  <div className="space-y-3 max-h-80 overflow-y-auto">
-                    {testReports
-                      .filter(
-                        (r) =>
-                          r.status === "pending" || r.status === "assigned",
-                      )
-                      .slice(0, 5)
-                      .map((report) => (
-                        <div
-                          key={report._id}
-                          className="bg-gray-50 rounded-lg p-3 border border-gray-200"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium text-gray-900">
-                                {report.test_name}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Patient: {report.patientId?.name}
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                MLT: {report.mltId?.name}
-                              </p>
-                            </div>
-                            {getStatusBadge(report.status)}
-                          </div>
-                        </div>
-                      ))}
-                    {testReports.filter(
-                      (r) => r.status === "pending" || r.status === "assigned",
-                    ).length === 0 && (
-                      <p className="text-gray-500 text-center py-4">
-                        No pending requests
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* SECTION 2: View Test Reports */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <button
-            onClick={() =>
-              setIsDropdownOpen({
-                ...isDropdownOpen,
-                reports: !isDropdownOpen.reports,
-              })
-            }
-            className="w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white flex items-center justify-between hover:from-blue-600 hover:to-cyan-600 transition-colors"
-          >
-            <div className="flex items-center space-x-3">
-              <FileCheck className="h-6 w-6" />
-              <span className="text-lg font-semibold">View Test Reports</span>
-              <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
-                {stats?.completed || 0} Completed
-              </span>
-            </div>
-            {isDropdownOpen.reports ? (
-              <ChevronUp className="h-6 w-6" />
-            ) : (
-              <ChevronDown className="h-6 w-6" />
-            )}
-          </button>
-
-          {isDropdownOpen.reports && (
-            <div className="p-6">
-              {/* Filters */}
-              <div className="flex flex-wrap gap-4 items-center justify-between mb-4">
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    "all",
-                    "pending",
-                    "in-progress",
-                    "completed",
-                    "cancelled",
-                  ].map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => setFilter(status)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        filter === status
-                          ? "bg-teal-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </button>
-                  ))}
-                </div>
-                <div className="relative">
-                  <Search className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search reports..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 w-64"
-                  />
-                </div>
-              </div>
-
-              {/* Reports List */}
-              <div className="grid grid-cols-1 gap-4">
-                {filteredReports.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-500">No test reports found</p>
-                  </div>
-                ) : (
-                  filteredReports.map((report) => (
-                    <div
-                      key={report._id}
-                      className={`border rounded-lg p-4 transition-all hover:shadow-md cursor-pointer ${
-                        selectedReport?._id === report._id
-                          ? "border-teal-500 bg-teal-50"
-                          : "border-gray-200 hover:border-teal-300"
-                      }`}
-                      onClick={() => setSelectedReport(report)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3">
-                            <h3 className="font-semibold text-gray-900">
-                              {report.test_name}
-                            </h3>
-                            {getPriorityBadge(report.test_priority)}
-                            {getStatusBadge(report.status)}
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm">
-                            <div>
-                              <span className="text-gray-500">Patient:</span>
-                              <span className="ml-1 font-medium">
-                                {report.patientId?.name}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">MLT:</span>
-                              <span className="ml-1 font-medium">
-                                {report.mltId?.name}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Category:</span>
-                              <span className="ml-1">
-                                {report.test_category}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Date:</span>
-                              <span className="ml-1">
-                                {new Date(
-                                  report.createdAt,
-                                ).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                          {report.status === "completed" &&
-                            report.test_results && (
-                              <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
-                                <p className="text-sm text-green-800">
-                                  <CheckCircle className="h-4 w-4 inline mr-1" />
-                                  Report ready - Click to view details
-                                </p>
-                              </div>
-                            )}
-                        </div>
-                        {report.status === "completed" &&
-                          report.test_report_url && (
-                            <a
-                              href={report.test_report_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="ml-4 px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center space-x-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Download className="h-4 w-4" />
-                              <span>Download</span>
-                            </a>
-                          )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Create Test Modal - Full version */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6"
+        >
+          {/* Doctor Info - Read Only */}
+          <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
+            <h3 className="font-semibold text-teal-800 mb-3 flex items-center">
+              <Stethoscope className="h-5 w-5 mr-2" />
+              Doctor Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  New Test Request
-                </h2>
-                <p className="text-gray-600">
-                  Assign a test to an MLT for a patient
+                <p className="text-gray-500">Name</p>
+                <p className="font-medium text-gray-900">
+                  {formData.doctor_name}
                 </p>
               </div>
+              <div>
+                <p className="text-gray-500">Email</p>
+                <p className="font-medium text-gray-900">
+                  {formData.doctor_email}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500">Specialization</p>
+                <p className="font-medium text-gray-900">
+                  {formData.doctor_specialization || "Not specified"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Select MLT */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select MLT *
+            </label>
+            <select
+              value={formData.mltId}
+              onChange={handleMLTSelect}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+            >
+              <option value="">Select MLT</option>
+              {mlts.map((mlt) => (
+                <option key={mlt._id} value={mlt._id}>
+                  {mlt.name} - {mlt.specialization} ({mlt.department})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* MLT Details - Auto populated */}
+          {formData.mltId && (
+            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <h3 className="font-semibold text-purple-800 mb-3 flex items-center">
+                <Microscope className="h-5 w-5 mr-2" />
+                MLT Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Name</p>
+                  <p className="font-medium text-gray-900">
+                    {formData.mlt_name}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Email</p>
+                  <p className="font-medium text-gray-900">
+                    {formData.mlt_email}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Specialization</p>
+                  <p className="font-medium text-gray-900">
+                    {formData.mlt_specialization}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Select Patient */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select Patient *
+            </label>
+            <select
+              value={formData.patientId}
+              onChange={handlePatientSelect}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+            >
+              <option value="">Select Patient</option>
+              {patients.map((patient) => (
+                <option key={patient._id} value={patient._id}>
+                  {patient.name} - {patient.email}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Patient Details - Auto populated */}
+          {formData.patientId && (
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
+                <User className="h-5 w-5 mr-2" />
+                Patient Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Name</p>
+                  <p className="font-medium text-gray-900">
+                    {formData.patient_name}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Email</p>
+                  <p className="font-medium text-gray-900">
+                    {formData.patient_email}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Phone</p>
+                  <p className="font-medium text-gray-900">
+                    {formData.patient_phone || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Age/Gender/Blood</p>
+                  <p className="font-medium text-gray-900">
+                    {formData.patient_age || "N/A"} /{" "}
+                    {formData.patient_gender || "N/A"} /{" "}
+                    {formData.patient_bloodGroup || "N/A"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Test Details */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Activity className="h-5 w-5 mr-2 text-teal-600" />
+              Test Details
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Test Name *
+                </label>
+                <input
+                  type="text"
+                  name="test_name"
+                  value={formData.test_name}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Complete Blood Count"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Test Category *
+                </label>
+                <select
+                  name="test_category"
+                  value={formData.test_category}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                >
+                  <option value="Hematology">Hematology</option>
+                  <option value="Microbiology">Microbiology</option>
+                  <option value="Biochemistry">Biochemistry</option>
+                  <option value="Pathology">Pathology</option>
+                  <option value="Radiology">Radiology</option>
+                  <option value="Immunology">Immunology</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Priority
+                </label>
+                <select
+                  name="test_priority"
+                  value={formData.test_priority}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                >
+                  <option value="routine">Routine</option>
+                  <option value="urgent">Urgent</option>
+                  <option value="emergency">Emergency</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Suspected Disease
+                </label>
+                <input
+                  type="text"
+                  name="suspected_disease"
+                  value={formData.suspected_disease}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Anemia"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Test Description
+              </label>
+              <textarea
+                name="test_description"
+                rows={2}
+                value={formData.test_description}
+                onChange={handleInputChange}
+                placeholder="Describe the test in detail"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Test Instructions for MLT
+              </label>
+              <textarea
+                name="test_instructions"
+                rows={2}
+                value={formData.test_instructions}
+                onChange={handleInputChange}
+                placeholder="Any specific instructions for the MLT"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+          </div>
+
+          {/* Clinical Details */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Heart className="h-5 w-5 mr-2 text-red-500" />
+              Clinical Details
+            </h3>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Symptoms
+              </label>
+              <textarea
+                name="symptoms"
+                rows={2}
+                value={formData.symptoms}
+                onChange={handleInputChange}
+                placeholder="Describe the patient's symptoms"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Clinical Notes
+              </label>
+              <textarea
+                name="clinical_notes"
+                rows={2}
+                value={formData.clinical_notes}
+                onChange={handleInputChange}
+                placeholder="Additional clinical notes"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Medical History
+              </label>
+              <textarea
+                name="medical_history"
+                rows={2}
+                value={formData.medical_history}
+                onChange={handleInputChange}
+                placeholder="Patient's medical history"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+          </div>
+
+          {/* Medications */}
+          <div className="border-t pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Pill className="h-5 w-5 mr-2 text-teal-600" />
+                Medications
+              </h3>
               <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                type="button"
+                onClick={addMedication}
+                className="px-3 py-1 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center space-x-1 text-sm"
               >
-                <XCircle className="h-6 w-6 text-gray-500" />
+                <Plus className="h-4 w-4" />
+                <span>Add</span>
               </button>
             </div>
 
-            <form onSubmit={handleCreateTest} className="space-y-6">
-              {/* Patient Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Patient *
-                </label>
-                <select
-                  required
-                  value={formData.patientId}
+            {formData.medications.map((med, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 p-3 bg-gray-50 rounded-lg"
+              >
+                <input
+                  type="text"
+                  placeholder="Medication name"
+                  value={med.name}
                   onChange={(e) =>
-                    setFormData({ ...formData, patientId: e.target.value })
+                    handleMedicationChange(index, "name", e.target.value)
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                >
-                  <option value="">Select patient</option>
-                  {patients.map((patient) => (
-                    <option key={patient._id} value={patient._id}>
-                      {patient.name} - {patient.email}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* MLT Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Assign to MLT *
-                </label>
-                <select
-                  required
-                  value={formData.mltId}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Dosage"
+                  value={med.dosage}
                   onChange={(e) =>
-                    setFormData({ ...formData, mltId: e.target.value })
+                    handleMedicationChange(index, "dosage", e.target.value)
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                >
-                  <option value="">Select MLT</option>
-                  {mlts.map((mlt) => (
-                    <option key={mlt._id} value={mlt._id}>
-                      {mlt.name} - {mlt.specialization}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Test Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Test Name *
-                  </label>
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Frequency"
+                  value={med.frequency}
+                  onChange={(e) =>
+                    handleMedicationChange(index, "frequency", e.target.value)
+                  }
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                />
+                <div className="flex items-center space-x-2">
                   <input
                     type="text"
-                    required
-                    value={formData.test_name}
+                    placeholder="Duration"
+                    value={med.duration}
                     onChange={(e) =>
-                      setFormData({ ...formData, test_name: e.target.value })
+                      handleMedicationChange(index, "duration", e.target.value)
                     }
-                    placeholder="e.g., Complete Blood Count"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Test Category *
-                  </label>
-                  <select
-                    required
-                    value={formData.test_category}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        test_category: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                  <button
+                    type="button"
+                    onClick={() => removeMedication(index)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
                   >
-                    <option value="Hematology">Hematology</option>
-                    <option value="Microbiology">Microbiology</option>
-                    <option value="Biochemistry">Biochemistry</option>
-                    <option value="Pathology">Pathology</option>
-                    <option value="Radiology">Radiology</option>
-                    <option value="Immunology">Immunology</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Priority
-                  </label>
-                  <select
-                    value={formData.test_priority}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        test_priority: e.target.value as any,
-                      })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                  >
-                    <option value="routine">Routine</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="emergency">Emergency</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Suspected Disease
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.suspected_disease}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        suspected_disease: e.target.value,
-                      })
-                    }
-                    placeholder="e.g., Anemia"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                  />
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
-
-              {/* Symptoms */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Symptoms
-                </label>
-                <textarea
-                  rows={2}
-                  value={formData.symptoms}
-                  onChange={(e) =>
-                    setFormData({ ...formData, symptoms: e.target.value })
-                  }
-                  placeholder="Describe the patient's symptoms"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-
-              {/* Clinical Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Clinical Notes
-                </label>
-                <textarea
-                  rows={2}
-                  value={formData.clinical_notes}
-                  onChange={(e) =>
-                    setFormData({ ...formData, clinical_notes: e.target.value })
-                  }
-                  placeholder="Additional clinical notes"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Test Instructions
-                </label>
-                <textarea
-                  rows={2}
-                  value={formData.test_instructions}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      test_instructions: e.target.value,
-                    })
-                  }
-                  placeholder="Instructions for the MLT"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
-                >
-                  Create Test Request
-                </button>
-              </div>
-            </form>
+            ))}
           </div>
-        </div>
-      )}
+
+          {/* Submit */}
+          <div className="border-t pt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => navigate("/doctor/test-reports")}
+              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-lg hover:from-teal-700 hover:to-emerald-700 disabled:opacity-50 flex items-center space-x-2"
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Submitting...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="h-5 w-5" />
+                  <span>Create Test Request</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
 
-export default DoctorTestReports;
+export default DoctorCreateTestRequest;

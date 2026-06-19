@@ -59,7 +59,7 @@ interface TestReport {
 }
 
 const MLTTestReports = () => {
-  const { user } = useAuth();
+  const { user } = useAuth(); // user has 'id' not '_id'
   const [loading, setLoading] = useState(true);
   const [testRequests, setTestRequests] = useState<TestReport[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<TestReport | null>(
@@ -94,7 +94,8 @@ const MLTTestReports = () => {
   const fetchTestRequests = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/test-reports/mlt/${user?._id}`, {
+      // ✅ Use user.id instead of user._id
+      const response = await api.get(`/test-reports/mlt/${user?.id}`, {
         params: { status: filter !== "all" ? filter : undefined },
       });
       if (response.data.success) {
@@ -515,7 +516,6 @@ const MLTTestReports = () => {
                             <button
                               onClick={() => {
                                 setSelectedRequest(request);
-                                // Scroll to submit section
                                 document
                                   .getElementById("submit-section")
                                   ?.scrollIntoView({ behavior: "smooth" });

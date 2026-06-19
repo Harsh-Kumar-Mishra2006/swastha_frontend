@@ -14,7 +14,7 @@ import AppointmentStatus from "./pages/patients/AppointmentStatus";
 import DoctorAppointments from "./pages/doctor/DoctorAppointments";
 import { useAuth } from "./hooks/useAuth";
 import ViewPatients from "./pages/doctor/viewPatients";
-import DoctorTestReports from "./pages/doctor/DoctorTestReports";
+import DoctorCreateTestRequest from "./pages/doctor/DoctorTestReports";
 
 // ✅ Create a separate component for routes that need auth
 function AppRoutes() {
@@ -31,7 +31,7 @@ function AppRoutes() {
         <Route path="/add-doctor" element={<AdminDoctors />} />
         <Route path="/doctors" element={<OurDoctors />} />
         <Route path="/add-mlt" element={<AdminMLTs />} />
-        <Route path="/add-report" element={<DoctorTestReports />} />
+        <Route path="/add-report" element={<DoctorCreateTestRequest />} />
         <Route path="/contact-us" element={<ContactUsPage />} />
         <Route path="/view-patients" element={<ViewPatients />} />
         <Route path="/book-appointment" element={<BookAppointment />} />

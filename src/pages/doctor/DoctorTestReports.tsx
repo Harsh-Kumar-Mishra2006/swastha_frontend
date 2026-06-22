@@ -1,5 +1,5 @@
 // pages/doctor/DoctorCreateTestRequest.tsx
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import {
@@ -22,11 +22,8 @@ import {
   type Medication,
 } from "../../types/testReport";
 import MLTSection from "./MLTSection";
-// Import the AdminMLTProvider and context
-import {
-  AdminMLTProvider,
-  AdminMLTContext,
-} from "../../contexts/AdminMLTContext";
+// Import the AdminMLTProvider
+import { AdminMLTProvider } from "../../contexts/AdminMLTContext";
 
 // Wrapper component that provides the context
 const DoctorCreateTestRequestWithProvider = () => {
@@ -42,17 +39,6 @@ const DoctorCreateTestRequest = () => {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [showMLTView, setShowMLTView] = useState(false);
-
-  // Try to get the context, but don't throw error if it's not available
-  let adminMLTContext;
-  try {
-    adminMLTContext = useContext(AdminMLTContext);
-  } catch (e) {
-    // Context not available
-  }
-
-  // Check if we're inside the provider
-  const hasProvider = !!adminMLTContext;
 
   // Form state - ALL fields are manual input (no dropdowns)
   const [formData, setFormData] = useState<CreateTestRequestData>({
@@ -246,43 +232,27 @@ const DoctorCreateTestRequest = () => {
           </button>
         </div>
 
-        {/* Toggle MLT View Button - Only show if provider is available */}
-        {hasProvider && (
-          <>
-            <div className="mb-6">
-              <button
-                type="button"
-                onClick={() => setShowMLTView(!showMLTView)}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center space-x-2 transition-colors"
-              >
-                <Eye className="h-4 w-4" />
-                <span>
-                  {showMLTView ? "Hide MLT List" : "View Available MLTs"}
-                </span>
-              </button>
-              {showMLTView && (
-                <p className="text-sm text-gray-600 mt-2">
-                  Click on any MLT to auto-fill their details in the form below
-                </p>
-              )}
-            </div>
-
-            {/* View MLTs Section - Collapsible */}
-            {showMLTView && (
-              <div className="mb-8">
-                <MLTSection onSelectMLT={handleSelectMLT} />
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Fallback message if provider is not available */}
-        {!hasProvider && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-700">
-              <strong>Note:</strong> MLT list is currently unavailable. Please
-              enter MLT details manually.
+        {/* Toggle MLT View Button */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => setShowMLTView(!showMLTView)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center space-x-2 transition-colors"
+          >
+            <Eye className="h-4 w-4" />
+            <span>{showMLTView ? "Hide MLT List" : "View Available MLTs"}</span>
+          </button>
+          {showMLTView && (
+            <p className="text-sm text-gray-600 mt-2">
+              Click on any MLT to auto-fill their details in the form below
             </p>
+          )}
+        </div>
+
+        {/* View MLTs Section - Collapsible */}
+        {showMLTView && (
+          <div className="mb-8">
+            <MLTSection onSelectMLT={handleSelectMLT} />
           </div>
         )}
 
@@ -324,14 +294,12 @@ const DoctorCreateTestRequest = () => {
               <Microscope className="h-5 w-5 mr-2 text-purple-600" />
               MLT Information (Manual Entry)
             </h3>
-            {hasProvider && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-blue-700">
-                  <strong>Tip:</strong> Click "View Available MLTs" above to see
-                  MLT details and auto-fill this section.
-                </p>
-              </div>
-            )}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-blue-700">
+                <strong>Tip:</strong> Click "View Available MLTs" above to see
+                MLT details and auto-fill this section.
+              </p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

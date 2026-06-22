@@ -69,7 +69,8 @@ interface AdminMLTContextType {
   ) => Promise<void>;
 }
 
-const AdminMLTContext = createContext<AdminMLTContextType | undefined>(
+// Export the context itself
+export const AdminMLTContext = createContext<AdminMLTContextType | undefined>(
   undefined,
 );
 

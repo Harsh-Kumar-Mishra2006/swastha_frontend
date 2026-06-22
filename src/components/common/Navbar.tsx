@@ -31,6 +31,10 @@ const Navbar = () => {
   if (isAuthenticated && user?.role === "admin") {
     navLinks.push({ name: "Add Doctor", href: "/add-doctor" });
     navLinks.push({ name: "Add MLT", href: "/add-mlt" });
+    navLinks.push({
+      name: "Patient Appointments",
+      href: "/view-patient-appointments",
+    });
   } else if (isAuthenticated && user?.role === "doctor") {
     navLinks.push({
       name: "Active appointments",

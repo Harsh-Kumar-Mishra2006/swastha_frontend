@@ -13,6 +13,7 @@ import {
   Send,
   Plus,
   Trash2,
+  Eye,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import testReportService from "../../services/testReportService";
@@ -20,11 +21,13 @@ import {
   type CreateTestRequestData,
   type Medication,
 } from "../../types/testReport";
+import ViewMLTsSection from "../../components/view/viewMLTSection";
 
 const DoctorCreateTestRequest = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [showMLTView, setShowMLTView] = useState(false);
 
   // Form state - ALL fields are manual input (no dropdowns)
   const [formData, setFormData] = useState<CreateTestRequestData>({
@@ -35,7 +38,7 @@ const DoctorCreateTestRequest = () => {
     doctor_specialization: user?.profile?.specialization || "",
 
     // MLT info - MANUAL INPUT
-    mltId: "",
+    mltId: "", // Kept for type compatibility but will be auto-filled if MLT selected
     mlt_name: "",
     mlt_email: "",
     mlt_specialization: "",
@@ -49,7 +52,7 @@ const DoctorCreateTestRequest = () => {
     patient_gender: "",
     patient_bloodGroup: "",
 
-    // Appointment reference - optional
+    // Appointment reference - COMPULSORY
     appointmentId: "",
 
     // Test details - MANUAL INPUT
@@ -125,6 +128,19 @@ const DoctorCreateTestRequest = () => {
     }));
   };
 
+  // Function to auto-fill MLT details when selected from the view
+  const handleSelectMLT = (mlt: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      mltId: mlt._id || mlt.id || "",
+      mlt_name: mlt.name || "",
+      mlt_email: mlt.email || "",
+      mlt_specialization: mlt.specialization || "",
+    }));
+    setShowMLTView(false);
+    toast.success(`MLT ${mlt.name} selected successfully!`);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -143,6 +159,11 @@ const DoctorCreateTestRequest = () => {
       !formData.patient_email
     ) {
       toast.error("Please enter patient ID, name and email");
+      return;
+    }
+    // APPOINTMENT ID IS NOW COMPULSORY
+    if (!formData.appointmentId) {
+      toast.error("Please enter Appointment ID (compulsory)");
       return;
     }
     if (!formData.test_name) {
@@ -200,6 +221,30 @@ const DoctorCreateTestRequest = () => {
           </button>
         </div>
 
+        {/* Toggle MLT View Button */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => setShowMLTView(!showMLTView)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center space-x-2 transition-colors"
+          >
+            <Eye className="h-4 w-4" />
+            <span>{showMLTView ? "Hide MLT List" : "View Available MLTs"}</span>
+          </button>
+          {showMLTView && (
+            <p className="text-sm text-gray-600 mt-2">
+              Click on any MLT to auto-fill their details in the form below
+            </p>
+          )}
+        </div>
+
+        {/* View MLTs Section - Collapsible */}
+        {showMLTView && (
+          <div className="mb-8">
+            <ViewMLTsSection onSelectMLT={handleSelectMLT} />
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit}
           className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6"
@@ -232,12 +277,18 @@ const DoctorCreateTestRequest = () => {
             </div>
           </div>
 
-          {/* MLT Information - MANUAL INPUT */}
+          {/* MLT Information - MANUAL INPUT with hint */}
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <Microscope className="h-5 w-5 mr-2 text-purple-600" />
               MLT Information (Manual Entry)
             </h3>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-blue-700">
+                <strong>Tip:</strong> Click "View Available MLTs" above to see
+                MLT details and auto-fill this section.
+              </p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -280,15 +331,16 @@ const DoctorCreateTestRequest = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  MLT ID
+                  MLT ID (Auto-filled if selected)
                 </label>
                 <input
                   type="text"
                   name="mltId"
                   value={formData.mltId}
                   onChange={handleInputChange}
-                  placeholder="Enter MLT ID (if known)"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="Auto-filled from MLT selection"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-teal-500 focus:border-teal-500"
+                  readOnly
                 />
               </div>
             </div>
@@ -394,16 +446,21 @@ const DoctorCreateTestRequest = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Appointment ID (Optional)
+                  Appointment ID *{" "}
+                  <span className="text-red-500">(Required)</span>
                 </label>
                 <input
                   type="text"
                   name="appointmentId"
                   value={formData.appointmentId}
                   onChange={handleInputChange}
-                  placeholder="Enter appointment ID if applicable"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="Enter appointment ID"
+                  className="w-full px-4 py-2 border-2 border-red-200 rounded-lg focus:ring-teal-500 focus:border-teal-500"
+                  required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Appointment ID is required for tracking and verification
+                </p>
               </div>
             </div>
           </div>

@@ -21,7 +21,7 @@ import {
   type CreateTestRequestData,
   type Medication,
 } from "../../types/testReport";
-import ViewMLTsSection from "../../components/view/viewMLTSection";
+import MLTSection from "./MLTSection";
 
 const DoctorCreateTestRequest = () => {
   const { user } = useAuth();
@@ -241,7 +241,7 @@ const DoctorCreateTestRequest = () => {
         {/* View MLTs Section - Collapsible */}
         {showMLTView && (
           <div className="mb-8">
-            <ViewMLTsSection onSelectMLT={handleSelectMLT} />
+            <MLTSection onSelectMLT={handleSelectMLT} />
           </div>
         )}
 

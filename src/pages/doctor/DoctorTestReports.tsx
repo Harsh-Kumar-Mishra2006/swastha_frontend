@@ -22,7 +22,6 @@ import {
   type Medication,
 } from "../../types/testReport";
 import MLTSection from "./MLTSection";
-// Import the AdminMLTProvider
 import { AdminMLTProvider } from "../../contexts/AdminMLTContext";
 
 // Wrapper component that provides the context
@@ -42,19 +41,14 @@ const DoctorCreateTestRequest = () => {
 
   // Form state - ALL fields are manual input (no dropdowns)
   const [formData, setFormData] = useState<CreateTestRequestData>({
-    // Doctor info - auto-filled from logged in user
     doctorId: user?.id || "",
     doctor_name: user?.name || "",
     doctor_email: user?.email || "",
     doctor_specialization: user?.profile?.specialization || "",
-
-    // MLT info - MANUAL INPUT
     mltId: "",
     mlt_name: "",
     mlt_email: "",
     mlt_specialization: "",
-
-    // Patient info - MANUAL INPUT
     patientId: "",
     patient_name: "",
     patient_email: "",
@@ -62,24 +56,16 @@ const DoctorCreateTestRequest = () => {
     patient_age: "",
     patient_gender: "",
     patient_bloodGroup: "",
-
-    // Appointment reference - COMPULSORY
     appointmentId: "",
-
-    // Test details - MANUAL INPUT
     test_name: "",
     test_category: "Hematology",
     test_description: "",
     test_priority: "routine",
     test_instructions: "",
-
-    // Clinical details - MANUAL INPUT
     suspected_disease: "",
     symptoms: "",
     clinical_notes: "",
     medical_history: "",
-
-    // Medications
     medications: [{ name: "", dosage: "", frequency: "", duration: "" }],
   });
 
@@ -139,7 +125,6 @@ const DoctorCreateTestRequest = () => {
     }));
   };
 
-  // Function to auto-fill MLT details when selected from the view
   const handleSelectMLT = (mlt: any) => {
     setFormData((prev) => ({
       ...prev,
@@ -172,7 +157,6 @@ const DoctorCreateTestRequest = () => {
       toast.error("Please enter patient ID, name and email");
       return;
     }
-    // APPOINTMENT ID IS NOW COMPULSORY
     if (!formData.appointmentId) {
       toast.error("Please enter Appointment ID (compulsory)");
       return;
@@ -224,6 +208,7 @@ const DoctorCreateTestRequest = () => {
             </p>
           </div>
           <button
+            type="button" // ← Added type="button"
             onClick={() => navigate("/doctor/test-reports")}
             className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
           >
@@ -235,7 +220,7 @@ const DoctorCreateTestRequest = () => {
         {/* Toggle MLT View Button */}
         <div className="mb-6">
           <button
-            type="button"
+            type="button" // ← Added type="button"
             onClick={() => setShowMLTView(!showMLTView)}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center space-x-2 transition-colors"
           >
@@ -249,13 +234,14 @@ const DoctorCreateTestRequest = () => {
           )}
         </div>
 
-        {/* View MLTs Section - Collapsible */}
+        {/* ✅ MLTSection OUTSIDE the form to prevent nested buttons */}
         {showMLTView && (
           <div className="mb-8">
             <MLTSection onSelectMLT={handleSelectMLT} />
           </div>
         )}
 
+        {/* ✅ Form starts here */}
         <form
           onSubmit={handleSubmit}
           className="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6"
@@ -636,7 +622,7 @@ const DoctorCreateTestRequest = () => {
                 Medications
               </h3>
               <button
-                type="button"
+                type="button" // ← Added type="button"
                 onClick={addMedication}
                 className="px-3 py-1 bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center space-x-1 text-sm"
               >
@@ -688,7 +674,7 @@ const DoctorCreateTestRequest = () => {
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
                   />
                   <button
-                    type="button"
+                    type="button" // ← Added type="button"
                     onClick={() => removeMedication(index)}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
                   >
@@ -702,7 +688,7 @@ const DoctorCreateTestRequest = () => {
           {/* Submit */}
           <div className="border-t pt-6 flex justify-end space-x-3">
             <button
-              type="button"
+              type="button" // ← Added type="button"
               onClick={() => navigate("/doctor/test-reports")}
               className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
             >

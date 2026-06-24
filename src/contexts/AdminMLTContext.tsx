@@ -67,9 +67,9 @@ interface AdminMLTContextType {
     mltId: string,
     profileData: Partial<AddMLTData>,
   ) => Promise<void>;
+  canManage: boolean; // ← Add this to check if user can manage MLTs
 }
 
-// Export the context itself
 export const AdminMLTContext = createContext<AdminMLTContextType | undefined>(
   undefined,
 );
@@ -81,6 +81,9 @@ export const AdminMLTProvider: React.FC<{ children: ReactNode }> = ({
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+
+  // ✅ Check if user can manage MLTs (admin only)
+  const canManage = user?.role === "admin";
 
   const fetchMLTs = async () => {
     try {
@@ -99,6 +102,9 @@ export const AdminMLTProvider: React.FC<{ children: ReactNode }> = ({
 
   const fetchStats = async () => {
     try {
+      // ✅ Only admins can fetch stats
+      if (user?.role !== "admin") return;
+
       const response = await adminService.getMLTStats();
       if (response.success) {
         setStats(response.data);
@@ -109,10 +115,15 @@ export const AdminMLTProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const addMLT = async (mltData: AddMLTData) => {
+    // ✅ Only admins can add MLTs
+    if (user?.role !== "admin") {
+      toast.error("Only admins can add MLTs");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // Validate password
       if (!mltData.password || mltData.password.length < 6) {
         toast.error("Password must be at least 6 characters");
         return;
@@ -162,6 +173,12 @@ export const AdminMLTProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const updateMLTStatus = async (mltId: string, status: string) => {
+    // ✅ Only admins can update MLT status
+    if (user?.role !== "admin") {
+      toast.error("Only admins can update MLT status");
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await adminService.updateMLTStatus(mltId, status);
@@ -179,6 +196,12 @@ export const AdminMLTProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const deleteMLT = async (mltId: string, permanent: boolean = false) => {
+    // ✅ Only admins can delete MLTs
+    if (user?.role !== "admin") {
+      toast.error("Only admins can delete MLTs");
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await adminService.deleteMLT(mltId, permanent);
@@ -198,6 +221,12 @@ export const AdminMLTProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const resetMLTPassword = async (mltId: string, newPassword: string) => {
+    // ✅ Only admins can reset passwords
+    if (user?.role !== "admin") {
+      toast.error("Only admins can reset MLT passwords");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -242,6 +271,12 @@ export const AdminMLTProvider: React.FC<{ children: ReactNode }> = ({
     mltId: string,
     profileData: Partial<AddMLTData>,
   ) => {
+    // ✅ Only admins can update MLT profiles
+    if (user?.role !== "admin") {
+      toast.error("Only admins can update MLT profiles");
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await adminService.updateMLTProfile(mltId, profileData);
@@ -257,11 +292,15 @@ export const AdminMLTProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Load initial data
+  // ✅ Load initial data - Both admin and doctor can view MLTs
   useEffect(() => {
-    if (user?.role === "admin") {
-      fetchMLTs();
-      fetchStats();
+    if (user?.role === "admin" || user?.role === "doctor") {
+      fetchMLTs(); // ← Now both admin and doctor fetch MLTs
+
+      // ✅ Only admins fetch stats
+      if (user?.role === "admin") {
+        fetchStats();
+      }
     }
   }, [user]);
 
@@ -279,6 +318,7 @@ export const AdminMLTProvider: React.FC<{ children: ReactNode }> = ({
         resetMLTPassword,
         getMLTById,
         updateMLTProfile,
+        canManage, // ← Pass this to components
       }}
     >
       {children}

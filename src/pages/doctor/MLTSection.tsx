@@ -27,8 +27,8 @@ const MLTSection = ({
   onSelectMLT,
   selectable = true,
 }: ViewMLTsSectionProps) => {
-  const { mlts, loading, updateMLTStatus, deleteMLT, resetMLTPassword } =
-    useAdminMLT();
+  const { mlts, loading, updateMLTStatus, deleteMLT, resetMLTPassword, canManage } =
+    useAdminMLT(); // ← Get canManage from context
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -121,7 +121,9 @@ const MLTSection = ({
             <p className="text-sm text-gray-600">
               {selectable
                 ? "Click on any MLT to select and auto-fill their details"
-                : "View and manage all Medical Laboratory Technician accounts"}
+                : canManage 
+                  ? "View and manage all Medical Laboratory Technician accounts"
+                  : "View all Medical Laboratory Technician accounts"}
             </p>
           </div>
           <button
@@ -196,7 +198,8 @@ const MLTSection = ({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Added By
               </th>
-              {!selectable && (
+              {/* ✅ Only show Actions column if user can manage MLTs */}
+              {!selectable && canManage && (
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
@@ -207,7 +210,7 @@ const MLTSection = ({
             {loading ? (
               <tr>
                 <td
-                  colSpan={selectable ? 8 : 7}
+                  colSpan={selectable ? 8 : (canManage ? 7 : 6)}
                   className="px-6 py-12 text-center"
                 >
                   <div className="flex justify-center">
@@ -218,7 +221,7 @@ const MLTSection = ({
             ) : filteredMLTs.length === 0 ? (
               <tr>
                 <td
-                  colSpan={selectable ? 8 : 7}
+                  colSpan={selectable ? 8 : (canManage ? 7 : 6)}
                   className="px-6 py-12 text-center text-gray-500"
                 >
                   No MLTs found
@@ -291,7 +294,8 @@ const MLTSection = ({
                       {mlt.addedBy?.name || "Admin"}
                     </div>
                   </td>
-                  {!selectable && (
+                  {/* ✅ Only show actions if user can manage MLTs */}
+                  {!selectable && canManage && (
                     <td className="px-6 py-4 text-right">
                       <div className="relative inline-block text-left">
                         <select
@@ -335,8 +339,8 @@ const MLTSection = ({
         </table>
       </div>
 
-      {/* Password Reset Modal */}
-      {showPasswordModal && selectedMLT && (
+      {/* Password Reset Modal - Only shown to admins */}
+      {showPasswordModal && selectedMLT && canManage && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -375,8 +379,8 @@ const MLTSection = ({
         </div>
       )}
 
-      {/* Delete Modal */}
-      {showDeleteModal && selectedMLT && (
+      {/* Delete Modal - Only shown to admins */}
+      {showDeleteModal && selectedMLT && canManage && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">

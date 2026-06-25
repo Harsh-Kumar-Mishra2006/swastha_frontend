@@ -1,7 +1,6 @@
-// types/prescription.ts
+// src/types/prescription.ts
 
 export interface Medication {
-  _id?: string;
   medicine_name: string;
   strength: string;
   form: 'Tablet' | 'Capsule' | 'Syrup' | 'Injection' | 'Cream' | 'Ointment' | 'Drops' | 'Inhaler' | 'Other';
@@ -10,80 +9,65 @@ export interface Medication {
   frequency: string;
   duration: string;
   timing: 'Before meal' | 'After meal' | 'With meal' | 'Empty stomach' | 'Any time' | '';
-  special_instructions: string;
-  is_controlled: boolean;
+  special_instructions?: string;
+  is_controlled?: boolean;
 }
 
 export interface Prescription {
   _id: string;
-  appointmentId: string | Appointment;
-  patientId: string | Patient;
+  appointmentId: string | AppointmentReference;
+  patientId: string | PatientReference;
   patient_name: string;
   patient_email: string;
   patient_phone: string;
-  patient_age: string;
-  patient_gender: 'Male' | 'Female' | 'Other' | '';
-  patient_bloodGroup: 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-' | '';
-  
-  doctorId: string | Doctor;
+  patient_age?: string;
+  patient_gender?: string;
+  patient_bloodGroup?: string;
+  doctorId: string | DoctorReference;
   doctor_name: string;
   doctor_email: string;
   doctor_specialization: string;
-  
   diagnosis: string;
   disease: string;
-  disease_code: string;
-  
-  prescription_date: string;
-  valid_until: string;
-  
+  disease_code?: string;
+  prescription_date: Date;
+  valid_until: Date;
   medications: Medication[];
-  dispensing_instructions: string;
+  dispensing_instructions?: string;
   refills_allowed: number;
   refills_remaining: number;
-  
   patient_instructions: string[];
-  non_medication_advice: string;
-  lifestyle_advice: string;
-  dietary_restrictions: string;
-  
+  non_medication_advice?: string;
+  lifestyle_advice?: string;
+  dietary_restrictions?: string;
   follow_up_required: boolean;
-  follow_up_date: string;
-  follow_up_notes: string;
-  
+  follow_up_date?: Date;
+  follow_up_notes?: string;
   warnings: string[];
   allergies_checked: boolean;
   drug_interactions_checked: boolean;
-  
   prescription_status: 'draft' | 'active' | 'dispensed' | 'expired' | 'cancelled';
-  
   is_digital_signed: boolean;
-  digital_signature: string;
-  doctor_notes: string;
-  
-  createdAt: string;
-  updatedAt: string;
-  dispensed_at: string;
-  cancelled_at: string;
-  
+  digital_signature?: string;
+  doctor_notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  dispensed_at?: Date;
+  cancelled_at?: Date;
   // Virtuals
   medication_count?: number;
   is_expired?: boolean;
   age_in_days?: number;
 }
 
-export interface Appointment {
+export interface AppointmentReference {
   _id: string;
-  patient_name: string;
-  patient_email: string;
-  doctor_name: string;
-  appointment_date: string;
+  appointment_date: Date;
   appointment_time: string;
-  appointment_status: string;
-  doctor_specialization?: string;
+  doctor_name: string;
 }
 
-export interface Patient {
+export interface PatientReference {
   _id: string;
   name: string;
   email: string;
@@ -95,7 +79,7 @@ export interface Patient {
   };
 }
 
-export interface Doctor {
+export interface DoctorReference {
   _id: string;
   name: string;
   email: string;
@@ -104,23 +88,27 @@ export interface Doctor {
   };
 }
 
+// API Request/Response Types
 export interface CreatePrescriptionRequest {
   appointmentId: string;
   diagnosis: string;
   disease: string;
   disease_code?: string;
-  medications: Medication[];
+  medications: Omit<Medication, 'form' | 'timing'> & {
+    form?: Medication['form'];
+    timing?: Medication['timing'];
+  }[];
   patient_instructions: string[];
-  non_medication_advice: string;
-  lifestyle_advice: string;
-  dietary_restrictions: string;
-  follow_up_required: boolean;
+  non_medication_advice?: string;
+  lifestyle_advice?: string;
+  dietary_restrictions?: string;
+  follow_up_required?: boolean;
   follow_up_date?: string;
   follow_up_notes?: string;
-  refills_allowed: number;
+  refills_allowed?: number;
   valid_until?: string;
-  warnings: string[];
-  doctor_notes: string;
+  warnings?: string[];
+  doctor_notes?: string;
 }
 
 export interface UpdatePrescriptionRequest {
@@ -135,10 +123,16 @@ export interface UpdatePrescriptionRequest {
   follow_up_required?: boolean;
   follow_up_date?: string;
   follow_up_notes?: string;
-  refills_allowed?: number;
   valid_until?: string;
+  refills_allowed?: number;
   warnings?: string[];
   doctor_notes?: string;
+}
+
+export interface DispensePrescriptionRequest {
+  pharmacy_name?: string;
+  pharmacist_name?: string;
+  notes?: string;
 }
 
 export interface PrescriptionStats {
@@ -147,26 +141,26 @@ export interface PrescriptionStats {
   dispensed: number;
   expired: number;
   cancelled: number;
-  byDoctor: Array<{
+  byDoctor: {
     _id: string;
     count: number;
     active: number;
     dispensed: number;
-  }>;
-  topMedications: Array<{
+  }[];
+  topMedications: {
     _id: string;
     count: number;
-  }>;
-  last30Days: Array<{
+  }[];
+  last30Days: {
     _id: string;
     count: number;
-  }>;
+  }[];
 }
 
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;
-  data: T;
+  data?: T;
   error?: string;
   count?: number;
   statistics?: any;

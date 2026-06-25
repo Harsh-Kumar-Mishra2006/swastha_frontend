@@ -1,159 +1,190 @@
-// services/prescriptionService.ts
+// src/services/prescriptionService.ts
+
 import axios from 'axios';
 import {
-  type Prescription,
-  type CreatePrescriptionRequest,
-  type UpdatePrescriptionRequest,
-  type PrescriptionStats,
-  type ApiResponse
+  Prescription,
+  CreatePrescriptionRequest,
+  UpdatePrescriptionRequest,
+  DispensePrescriptionRequest,
+  PrescriptionStats,
+  ApiResponse
 } from '../types/prescription';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add token to requests
-api.interceptors.request.use(
-  (config) => {
+class PrescriptionService {
+  private getAuthHeaders() {
     const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  }
 
-const prescriptionService = {
-  // 📌 Create Prescription (Doctor)
-  createPrescription: async (
-    data: CreatePrescriptionRequest
-  ): Promise<ApiResponse<Prescription>> => {
+  /**
+   * Create a new prescription (Doctor only)
+   */
+  async createPrescription(data: CreatePrescriptionRequest): Promise<ApiResponse<Prescription>> {
     try {
-      const response = await api.post('/prescription/create', data);
+      const response = await axios.post(
+        `${API_URL}/prescriptions/create`,
+        data,
+        this.getAuthHeaders()
+      );
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error creating prescription:', error);
-      throw error.response?.data || { error: 'Failed to create prescription' };
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to create prescription'
+      };
     }
-  },
+  }
 
-  // 📌 Get Patient Prescriptions
-  getPatientPrescriptions: async (
+  /**
+   * Get prescriptions for a patient
+   */
+  async getPatientPrescriptions(
     patientEmail: string,
     status?: string
-  ): Promise<ApiResponse<Prescription[]>> => {
+  ): Promise<ApiResponse<Prescription[]>> {
     try {
       const url = status
-        ? `/prescription/patient/${patientEmail}?status=${status}`
-        : `/prescription/patient/${patientEmail}`;
-      const response = await api.get(url);
+        ? `${API_URL}/prescriptions/patient/${patientEmail}?status=${status}`
+        : `${API_URL}/prescriptions/patient/${patientEmail}`;
+      const response = await axios.get(url, this.getAuthHeaders());
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error fetching patient prescriptions:', error);
-      throw error.response?.data || { error: 'Failed to fetch prescriptions' };
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to fetch prescriptions'
+      };
     }
-  },
+  }
 
-  // 📌 Get Doctor Prescriptions
-  getDoctorPrescriptions: async (
+  /**
+   * Get prescriptions for a doctor
+   */
+  async getDoctorPrescriptions(
     doctorEmail: string,
     status?: string
-  ): Promise<ApiResponse<Prescription[]>> => {
+  ): Promise<ApiResponse<Prescription[]>> {
     try {
       const url = status
-        ? `/prescription/doctor/${doctorEmail}?status=${status}`
-        : `/prescription/doctor/${doctorEmail}`;
-      const response = await api.get(url);
+        ? `${API_URL}/prescriptions/doctor/${doctorEmail}?status=${status}`
+        : `${API_URL}/prescriptions/doctor/${doctorEmail}`;
+      const response = await axios.get(url, this.getAuthHeaders());
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error fetching doctor prescriptions:', error);
-      throw error.response?.data || { error: 'Failed to fetch prescriptions' };
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to fetch prescriptions'
+      };
     }
-  },
+  }
 
-  // 📌 Get Prescription Details
-  getPrescriptionDetails: async (
-    prescriptionId: string
-  ): Promise<ApiResponse<Prescription>> => {
+  /**
+   * Get prescription details by ID
+   */
+  async getPrescriptionDetails(prescriptionId: string): Promise<ApiResponse<Prescription>> {
     try {
-      const response = await api.get(`/prescription/${prescriptionId}`);
+      const response = await axios.get(
+        `${API_URL}/prescriptions/${prescriptionId}`,
+        this.getAuthHeaders()
+      );
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error fetching prescription details:', error);
-      throw error.response?.data || { error: 'Failed to fetch prescription details' };
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to fetch prescription details'
+      };
     }
-  },
+  }
 
-  // 📌 Update Prescription (Doctor)
-  updatePrescription: async (
+  /**
+   * Update prescription (Doctor only)
+   */
+  async updatePrescription(
     prescriptionId: string,
     data: UpdatePrescriptionRequest
-  ): Promise<ApiResponse<Prescription>> => {
+  ): Promise<ApiResponse<Prescription>> {
     try {
-      const response = await api.put(`/prescription/${prescriptionId}`, data);
+      const response = await axios.put(
+        `${API_URL}/prescriptions/${prescriptionId}`,
+        data,
+        this.getAuthHeaders()
+      );
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error updating prescription:', error);
-      throw error.response?.data || { error: 'Failed to update prescription' };
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to update prescription'
+      };
     }
-  },
+  }
 
-  // 📌 Dispense Prescription (Pharmacy/Admin)
-  dispensePrescription: async (
+  /**
+   * Dispense prescription (Pharmacy/Admin)
+   */
+  async dispensePrescription(
     prescriptionId: string,
-    data: { pharmacy_name: string; pharmacist_name: string; notes?: string }
-  ): Promise<ApiResponse<Prescription>> => {
+    data: DispensePrescriptionRequest
+  ): Promise<ApiResponse<Prescription>> {
     try {
-      const response = await api.put(`/prescription/${prescriptionId}/dispense`, data);
+      const response = await axios.put(
+        `${API_URL}/prescriptions/${prescriptionId}/dispense`,
+        data,
+        this.getAuthHeaders()
+      );
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error dispensing prescription:', error);
-      throw error.response?.data || { error: 'Failed to dispense prescription' };
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to dispense prescription'
+      };
     }
-  },
+  }
 
-  // 📌 Cancel Prescription (Doctor/Admin)
-  cancelPrescription: async (
+  /**
+   * Cancel prescription (Doctor/Admin)
+   */
+  async cancelPrescription(
     prescriptionId: string,
     reason: string
-  ): Promise<ApiResponse<Prescription>> => {
+  ): Promise<ApiResponse<Prescription>> {
     try {
-      const response = await api.put(`/prescription/${prescriptionId}/cancel`, { reason });
+      const response = await axios.put(
+        `${API_URL}/prescriptions/${prescriptionId}/cancel`,
+        { reason },
+        this.getAuthHeaders()
+      );
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error cancelling prescription:', error);
-      throw error.response?.data || { error: 'Failed to cancel prescription' };
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to cancel prescription'
+      };
     }
-  },
+  }
 
-  // 📌 Get Prescription Statistics (Admin)
-  getPrescriptionStats: async (): Promise<ApiResponse<PrescriptionStats>> => {
+  /**
+   * Get prescription statistics (Admin only)
+   */
+  async getPrescriptionStats(): Promise<ApiResponse<PrescriptionStats>> {
     try {
-      const response = await api.get('/prescription/admin/stats');
+      const response = await axios.get(
+        `${API_URL}/prescriptions/admin/stats`,
+        this.getAuthHeaders()
+      );
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error fetching prescription stats:', error);
-      throw error.response?.data || { error: 'Failed to fetch statistics' };
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to fetch statistics'
+      };
     }
-  },
+  }
+}
 
-  // 📌 Get Available Appointments for Prescription (Doctor)
-  getAvailableAppointments: async (doctorEmail: string): Promise<ApiResponse<any[]>> => {
-    try {
-      const response = await api.get(`/appointments/doctor/${doctorEmail}?status=approved`);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error fetching available appointments:', error);
-      throw error.response?.data || { error: 'Failed to fetch appointments' };
-    }
-  },
-};
-
-export default prescriptionService;
+export default new PrescriptionService();

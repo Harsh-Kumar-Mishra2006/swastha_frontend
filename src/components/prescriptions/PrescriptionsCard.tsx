@@ -12,7 +12,7 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
-import { Prescription } from "../../types/prescription";
+import { type Prescription } from "../../types/prescription";
 
 interface PrescriptionCardProps {
   prescription: Prescription;

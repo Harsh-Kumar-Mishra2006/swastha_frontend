@@ -6,7 +6,6 @@ import {
   ClipboardList,
   Pill,
   Calendar,
-  User,
   Stethoscope,
   FileText,
   Clock,
@@ -14,14 +13,12 @@ import {
   XCircle,
   AlertCircle,
   Download,
-  Eye,
-  Filter,
   Search,
   AlertTriangle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import prescriptionService from "../../services/prescriptionService";
-import { Prescription } from "../../types/prescription";
+import { type Prescription } from "../../types/prescription";
 
 const MyPrescriptions: React.FC = () => {
   const { user } = useAuth();

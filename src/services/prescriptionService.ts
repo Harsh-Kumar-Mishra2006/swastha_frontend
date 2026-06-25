@@ -2,15 +2,15 @@
 
 import axios from 'axios';
 import {
-  Prescription,
-  CreatePrescriptionRequest,
-  UpdatePrescriptionRequest,
-  DispensePrescriptionRequest,
-  PrescriptionStats,
-  ApiResponse
+ type  Prescription,
+  type CreatePrescriptionRequest,
+  type UpdatePrescriptionRequest,
+  type DispensePrescriptionRequest,
+  type PrescriptionStats,
+  type ApiResponse
 } from '../types/prescription';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://swastha-backend-p1k0.onrender.com/api';
 
 class PrescriptionService {
   private getAuthHeaders() {

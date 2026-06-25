@@ -3,12 +3,12 @@
 export interface Medication {
   medicine_name: string;
   strength: string;
-  form: 'Tablet' | 'Capsule' | 'Syrup' | 'Injection' | 'Cream' | 'Ointment' | 'Drops' | 'Inhaler' | 'Other';
+  form: string;
   quantity: string;
   dosage: string;
   frequency: string;
   duration: string;
-  timing: 'Before meal' | 'After meal' | 'With meal' | 'Empty stomach' | 'Any time' | '';
+  timing: string;
   special_instructions?: string;
   is_controlled?: boolean;
 }
@@ -54,7 +54,6 @@ export interface Prescription {
   updatedAt: Date;
   dispensed_at?: Date;
   cancelled_at?: Date;
-  // Virtuals
   medication_count?: number;
   is_expired?: boolean;
   age_in_days?: number;
@@ -88,15 +87,23 @@ export interface DoctorReference {
   };
 }
 
-// API Request/Response Types
+// ✅ Simplified - use strings for everything in the form
 export interface CreatePrescriptionRequest {
   appointmentId: string;
   diagnosis: string;
   disease: string;
   disease_code?: string;
-  medications: Omit<Medication, 'form' | 'timing'> & {
-    form?: Medication['form'];
-    timing?: Medication['timing'];
+  medications: {
+    medicine_name: string;
+    strength: string;
+    form: string;
+    quantity: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    timing: string;
+    special_instructions?: string;
+    is_controlled?: boolean;
   }[];
   patient_instructions: string[];
   non_medication_advice?: string;

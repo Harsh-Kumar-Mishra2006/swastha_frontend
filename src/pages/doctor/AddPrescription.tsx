@@ -1,32 +1,132 @@
 // src/pages/doctor/CreatePrescription.tsx
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import {
   Plus,
   Trash2,
   Save,
   Calendar,
-  User,
-  Stethoscope,
   FileText,
   Pill,
   AlertCircle,
-  CheckCircle,
-  XCircle,
-  Loader,
-  Clock,
   ArrowLeft,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useNavigate, useLocation } from "react-router-dom";
 import prescriptionService from "../../services/prescriptionService";
 import appointmentService from "../../services/appointmentService";
-import {
-  Medication,
-  CreatePrescriptionRequest,
-} from "../../types/prescription";
-import { Appointment } from "../../types/appointment";
+import { type CreatePrescriptionRequest } from "../../types/prescription";
+import { type Appointment } from "../../types/appointments";
+
+// ✅ Define state type
+type FormState = CreatePrescriptionRequest;
+
+// ✅ Define action types
+type FormAction =
+  | { type: "SET_FIELD"; field: keyof FormState; value: any }
+  | { type: "ADD_MEDICATION" }
+  | { type: "REMOVE_MEDICATION"; index: number }
+  | {
+      type: "UPDATE_MEDICATION";
+      index: number;
+      field: string;
+      value: string | boolean;
+    }
+  | { type: "ADD_INSTRUCTION" }
+  | { type: "REMOVE_INSTRUCTION"; index: number }
+  | { type: "UPDATE_INSTRUCTION"; index: number; value: string }
+  | { type: "ADD_WARNING" }
+  | { type: "REMOVE_WARNING"; index: number }
+  | { type: "UPDATE_WARNING"; index: number; value: string }
+  | { type: "RESET"; payload: FormState };
+
+// ✅ Reducer function
+const formReducer = (state: FormState, action: FormAction): FormState => {
+  switch (action.type) {
+    case "SET_FIELD":
+      return { ...state, [action.field]: action.value };
+
+    case "ADD_MEDICATION":
+      return {
+        ...state,
+        medications: [
+          ...state.medications,
+          {
+            medicine_name: "",
+            strength: "",
+            form: "Tablet",
+            quantity: "",
+            dosage: "",
+            frequency: "",
+            duration: "",
+            timing: "Any time",
+            special_instructions: "",
+            is_controlled: false,
+          },
+        ],
+      };
+
+    case "REMOVE_MEDICATION":
+      return {
+        ...state,
+        medications: state.medications.filter((_, i) => i !== action.index),
+      };
+
+    case "UPDATE_MEDICATION": {
+      const updatedMedications = [...state.medications];
+      updatedMedications[action.index] = {
+        ...updatedMedications[action.index],
+        [action.field]: action.value,
+      };
+      return { ...state, medications: updatedMedications };
+    }
+
+    case "ADD_INSTRUCTION":
+      return {
+        ...state,
+        patient_instructions: [...state.patient_instructions, ""],
+      };
+
+    case "REMOVE_INSTRUCTION":
+      return {
+        ...state,
+        patient_instructions: state.patient_instructions.filter(
+          (_, i) => i !== action.index,
+        ),
+      };
+
+    case "UPDATE_INSTRUCTION": {
+      const updatedInstructions = [...state.patient_instructions];
+      updatedInstructions[action.index] = action.value;
+      return { ...state, patient_instructions: updatedInstructions };
+    }
+
+    case "ADD_WARNING":
+      return {
+        ...state,
+        warnings: [...(state.warnings || []), ""],
+      };
+
+    case "REMOVE_WARNING":
+      return {
+        ...state,
+        warnings: state.warnings?.filter((_, i) => i !== action.index) || [],
+      };
+
+    case "UPDATE_WARNING": {
+      const updatedWarnings = [...(state.warnings || [])];
+      updatedWarnings[action.index] = action.value;
+      return { ...state, warnings: updatedWarnings };
+    }
+
+    case "RESET":
+      return action.payload;
+
+    default:
+      return state;
+  }
+};
 
 const CreatePrescription: React.FC = () => {
   const { user } = useAuth();
@@ -36,12 +136,12 @@ const CreatePrescription: React.FC = () => {
     "appointmentId",
   );
 
-  const [loading, setLoading] = useState(false);
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [loadingAppointment, setLoadingAppointment] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form State
-  const [formData, setFormData] = useState<CreatePrescriptionRequest>({
+  // ✅ Initial state
+  const initialState: FormState = {
     appointmentId: appointmentId || "",
     diagnosis: "",
     disease: "",
@@ -71,9 +171,9 @@ const CreatePrescription: React.FC = () => {
     valid_until: "",
     warnings: [""],
     doctor_notes: "",
-  });
+  };
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formState, dispatch] = useReducer(formReducer, initialState);
 
   useEffect(() => {
     if (appointmentId) {
@@ -87,149 +187,47 @@ const CreatePrescription: React.FC = () => {
   const fetchAppointmentDetails = async () => {
     try {
       setLoadingAppointment(true);
-      const response = await appointmentService.getAppointmentById(
+      const response = await appointmentService.getAppointmentDetails(
         appointmentId!,
       );
       if (response.success && response.data) {
         setAppointment(response.data);
-        // Pre-fill some fields
-        setFormData((prev) => ({
-          ...prev,
-          appointmentId: appointmentId!,
-        }));
       } else {
         toast.error("Failed to load appointment details");
       }
     } catch (error) {
       toast.error("Error loading appointment");
+      console.error("Fetch error:", error);
     } finally {
       setLoadingAppointment(false);
     }
   };
 
-  // Medication Handlers
-  const addMedication = () => {
-    setFormData((prev) => ({
-      ...prev,
-      medications: [
-        ...prev.medications,
-        {
-          medicine_name: "",
-          strength: "",
-          form: "Tablet",
-          quantity: "",
-          dosage: "",
-          frequency: "",
-          duration: "",
-          timing: "Any time",
-          special_instructions: "",
-          is_controlled: false,
-        },
-      ],
-    }));
-  };
-
-  const removeMedication = (index: number) => {
-    if (formData.medications.length <= 1) {
-      toast.error("At least one medication is required");
-      return;
-    }
-    setFormData((prev) => ({
-      ...prev,
-      medications: prev.medications.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updateMedication = (
-    index: number,
-    field: keyof Medication,
-    value: any,
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      medications: prev.medications.map((med, i) =>
-        i === index ? { ...med, [field]: value } : med,
-      ),
-    }));
-  };
-
-  // Instruction Handlers
-  const addInstruction = () => {
-    setFormData((prev) => ({
-      ...prev,
-      patient_instructions: [...prev.patient_instructions, ""],
-    }));
-  };
-
-  const removeInstruction = (index: number) => {
-    if (formData.patient_instructions.length <= 1) {
-      toast.error("At least one instruction is required");
-      return;
-    }
-    setFormData((prev) => ({
-      ...prev,
-      patient_instructions: prev.patient_instructions.filter(
-        (_, i) => i !== index,
-      ),
-    }));
-  };
-
-  const updateInstruction = (index: number, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      patient_instructions: prev.patient_instructions.map((inst, i) =>
-        i === index ? value : inst,
-      ),
-    }));
-  };
-
-  // Warning Handlers
-  const addWarning = () => {
-    setFormData((prev) => ({
-      ...prev,
-      warnings: [...(prev.warnings || []), ""],
-    }));
-  };
-
-  const removeWarning = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      warnings: prev.warnings?.filter((_, i) => i !== index) || [],
-    }));
-  };
-
-  const updateWarning = (index: number, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      warnings:
-        prev.warnings?.map((warn, i) => (i === index ? value : warn)) || [],
-    }));
-  };
-
+  // ✅ Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate
-    if (!formData.diagnosis || !formData.disease) {
+    if (!formState.diagnosis || !formState.disease) {
       toast.error("Diagnosis and disease are required");
       return;
     }
 
-    const invalidMedication = formData.medications.some(
+    const invalidMedication = formState.medications.some(
       (med) =>
-        !med.medicine_name ||
-        !med.strength ||
-        !med.dosage ||
-        !med.frequency ||
-        !med.duration,
+        !med.medicine_name?.trim() ||
+        !med.strength?.trim() ||
+        !med.dosage?.trim() ||
+        !med.frequency?.trim() ||
+        !med.duration?.trim(),
     );
     if (invalidMedication) {
       toast.error("Please fill all medication fields");
       return;
     }
 
-    const invalidInstruction = formData.patient_instructions.some(
-      (inst) => !inst.trim(),
+    const invalidInstruction = formState.patient_instructions.some(
+      (inst) => !inst?.trim(),
     );
     if (invalidInstruction) {
       toast.error("Please fill all instruction fields");
@@ -238,17 +236,24 @@ const CreatePrescription: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const response = await prescriptionService.createPrescription({
-        ...formData,
-        patient_instructions: formData.patient_instructions.filter((inst) =>
+      const payload = {
+        ...formState,
+        patient_instructions: formState.patient_instructions.filter((inst) =>
           inst.trim(),
         ),
-        warnings: formData.warnings?.filter((w) => w.trim()) || [],
-        medications: formData.medications.map((med) => ({
+        warnings: formState.warnings?.filter((w) => w.trim()) || [],
+        medications: formState.medications.map((med) => ({
           ...med,
           quantity: med.quantity || "As prescribed",
+          medicine_name: med.medicine_name.trim(),
+          strength: med.strength.trim(),
+          dosage: med.dosage.trim(),
+          frequency: med.frequency.trim(),
+          duration: med.duration.trim(),
         })),
-      });
+      };
+
+      const response = await prescriptionService.createPrescription(payload);
 
       if (response.success) {
         toast.success("Prescription created successfully!");
@@ -258,11 +263,13 @@ const CreatePrescription: React.FC = () => {
       }
     } catch (error) {
       toast.error("Error creating prescription");
+      console.error("Submit error:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Loading state
   if (loadingAppointment) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -271,6 +278,7 @@ const CreatePrescription: React.FC = () => {
     );
   }
 
+  // Not found state
   if (!appointment) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -369,12 +377,13 @@ const CreatePrescription: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={formData.diagnosis}
+                value={formState.diagnosis}
                 onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    diagnosis: e.target.value,
-                  }))
+                  dispatch({
+                    type: "SET_FIELD",
+                    field: "diagnosis",
+                    value: e.target.value,
+                  })
                 }
                 placeholder="e.g., Acute Upper Respiratory Tract Infection"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -387,9 +396,13 @@ const CreatePrescription: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={formData.disease}
+                value={formState.disease}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, disease: e.target.value }))
+                  dispatch({
+                    type: "SET_FIELD",
+                    field: "disease",
+                    value: e.target.value,
+                  })
                 }
                 placeholder="e.g., Common Cold"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -404,12 +417,13 @@ const CreatePrescription: React.FC = () => {
             </label>
             <input
               type="text"
-              value={formData.disease_code}
+              value={formState.disease_code}
               onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  disease_code: e.target.value,
-                }))
+                dispatch({
+                  type: "SET_FIELD",
+                  field: "disease_code",
+                  value: e.target.value,
+                })
               }
               placeholder="e.g., J06.9"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -425,7 +439,7 @@ const CreatePrescription: React.FC = () => {
               </h3>
               <button
                 type="button"
-                onClick={addMedication}
+                onClick={() => dispatch({ type: "ADD_MEDICATION" })}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center space-x-2 text-sm"
               >
                 <Plus className="h-4 w-4" />
@@ -433,20 +447,20 @@ const CreatePrescription: React.FC = () => {
               </button>
             </div>
 
-            {formData.medications.map((med, index) => (
+            {formState.medications.map((med, index) => (
               <div
                 key={index}
                 className="bg-gray-50 rounded-lg p-4 mb-4 relative"
               >
-                <div className="absolute top-2 right-2">
-                  <button
-                    type="button"
-                    onClick={() => removeMedication(index)}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => dispatch({ type: "REMOVE_MEDICATION", index })}
+                  className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                  disabled={formState.medications.length <= 1}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -456,7 +470,12 @@ const CreatePrescription: React.FC = () => {
                       type="text"
                       value={med.medicine_name}
                       onChange={(e) =>
-                        updateMedication(index, "medicine_name", e.target.value)
+                        dispatch({
+                          type: "UPDATE_MEDICATION",
+                          index,
+                          field: "medicine_name",
+                          value: e.target.value,
+                        })
                       }
                       placeholder="e.g., Paracetamol"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -471,7 +490,12 @@ const CreatePrescription: React.FC = () => {
                       type="text"
                       value={med.strength}
                       onChange={(e) =>
-                        updateMedication(index, "strength", e.target.value)
+                        dispatch({
+                          type: "UPDATE_MEDICATION",
+                          index,
+                          field: "strength",
+                          value: e.target.value,
+                        })
                       }
                       placeholder="e.g., 500mg"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -485,7 +509,12 @@ const CreatePrescription: React.FC = () => {
                     <select
                       value={med.form}
                       onChange={(e) =>
-                        updateMedication(index, "form", e.target.value)
+                        dispatch({
+                          type: "UPDATE_MEDICATION",
+                          index,
+                          field: "form",
+                          value: e.target.value,
+                        })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                     >
@@ -501,6 +530,7 @@ const CreatePrescription: React.FC = () => {
                     </select>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -510,7 +540,12 @@ const CreatePrescription: React.FC = () => {
                       type="text"
                       value={med.dosage}
                       onChange={(e) =>
-                        updateMedication(index, "dosage", e.target.value)
+                        dispatch({
+                          type: "UPDATE_MEDICATION",
+                          index,
+                          field: "dosage",
+                          value: e.target.value,
+                        })
                       }
                       placeholder="e.g., 1 tablet"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -525,7 +560,12 @@ const CreatePrescription: React.FC = () => {
                       type="text"
                       value={med.frequency}
                       onChange={(e) =>
-                        updateMedication(index, "frequency", e.target.value)
+                        dispatch({
+                          type: "UPDATE_MEDICATION",
+                          index,
+                          field: "frequency",
+                          value: e.target.value,
+                        })
                       }
                       placeholder="e.g., Twice daily"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -540,7 +580,12 @@ const CreatePrescription: React.FC = () => {
                       type="text"
                       value={med.duration}
                       onChange={(e) =>
-                        updateMedication(index, "duration", e.target.value)
+                        dispatch({
+                          type: "UPDATE_MEDICATION",
+                          index,
+                          field: "duration",
+                          value: e.target.value,
+                        })
                       }
                       placeholder="e.g., 5 days"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -548,6 +593,7 @@ const CreatePrescription: React.FC = () => {
                     />
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -556,7 +602,12 @@ const CreatePrescription: React.FC = () => {
                     <select
                       value={med.timing}
                       onChange={(e) =>
-                        updateMedication(index, "timing", e.target.value)
+                        dispatch({
+                          type: "UPDATE_MEDICATION",
+                          index,
+                          field: "timing",
+                          value: e.target.value,
+                        })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                     >
@@ -575,11 +626,12 @@ const CreatePrescription: React.FC = () => {
                       type="text"
                       value={med.special_instructions || ""}
                       onChange={(e) =>
-                        updateMedication(
+                        dispatch({
+                          type: "UPDATE_MEDICATION",
                           index,
-                          "special_instructions",
-                          e.target.value,
-                        )
+                          field: "special_instructions",
+                          value: e.target.value,
+                        })
                       }
                       placeholder="e.g., Swallow whole, don't crush"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -599,7 +651,7 @@ const CreatePrescription: React.FC = () => {
               </h3>
               <button
                 type="button"
-                onClick={addInstruction}
+                onClick={() => dispatch({ type: "ADD_INSTRUCTION" })}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center space-x-2 text-sm"
               >
                 <Plus className="h-4 w-4" />
@@ -607,20 +659,29 @@ const CreatePrescription: React.FC = () => {
               </button>
             </div>
 
-            {formData.patient_instructions.map((instruction, index) => (
+            {formState.patient_instructions.map((instruction, index) => (
               <div key={index} className="flex items-center space-x-2 mb-2">
                 <input
                   type="text"
                   value={instruction}
-                  onChange={(e) => updateInstruction(index, e.target.value)}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "UPDATE_INSTRUCTION",
+                      index,
+                      value: e.target.value,
+                    })
+                  }
                   placeholder={`Instruction ${index + 1}`}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                   required
                 />
                 <button
                   type="button"
-                  onClick={() => removeInstruction(index)}
+                  onClick={() =>
+                    dispatch({ type: "REMOVE_INSTRUCTION", index })
+                  }
                   className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  disabled={formState.patient_instructions.length <= 1}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -640,12 +701,13 @@ const CreatePrescription: React.FC = () => {
                 </label>
                 <textarea
                   rows={3}
-                  value={formData.non_medication_advice}
+                  value={formState.non_medication_advice}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      non_medication_advice: e.target.value,
-                    }))
+                    dispatch({
+                      type: "SET_FIELD",
+                      field: "non_medication_advice",
+                      value: e.target.value,
+                    })
                   }
                   placeholder="e.g., Drink 2-3 liters of water daily. Get plenty of rest."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -658,12 +720,13 @@ const CreatePrescription: React.FC = () => {
                   </label>
                   <textarea
                     rows={2}
-                    value={formData.lifestyle_advice}
+                    value={formState.lifestyle_advice}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        lifestyle_advice: e.target.value,
-                      }))
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "lifestyle_advice",
+                        value: e.target.value,
+                      })
                     }
                     placeholder="e.g., Regular exercise, stress management"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -675,12 +738,13 @@ const CreatePrescription: React.FC = () => {
                   </label>
                   <textarea
                     rows={2}
-                    value={formData.dietary_restrictions}
+                    value={formState.dietary_restrictions}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        dietary_restrictions: e.target.value,
-                      }))
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "dietary_restrictions",
+                        value: e.target.value,
+                      })
                     }
                     placeholder="e.g., Avoid spicy food, low salt diet"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -696,12 +760,13 @@ const CreatePrescription: React.FC = () => {
               <input
                 type="checkbox"
                 id="follow_up"
-                checked={formData.follow_up_required}
+                checked={formState.follow_up_required}
                 onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    follow_up_required: e.target.checked,
-                  }))
+                  dispatch({
+                    type: "SET_FIELD",
+                    field: "follow_up_required",
+                    value: e.target.checked,
+                  })
                 }
                 className="h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
               />
@@ -713,7 +778,7 @@ const CreatePrescription: React.FC = () => {
               </label>
             </div>
 
-            {formData.follow_up_required && (
+            {formState.follow_up_required && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -721,12 +786,13 @@ const CreatePrescription: React.FC = () => {
                   </label>
                   <input
                     type="date"
-                    value={formData.follow_up_date}
+                    value={formState.follow_up_date}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        follow_up_date: e.target.value,
-                      }))
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "follow_up_date",
+                        value: e.target.value,
+                      })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                   />
@@ -737,12 +803,13 @@ const CreatePrescription: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={formData.follow_up_notes}
+                    value={formState.follow_up_notes}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        follow_up_notes: e.target.value,
-                      }))
+                      dispatch({
+                        type: "SET_FIELD",
+                        field: "follow_up_notes",
+                        value: e.target.value,
+                      })
                     }
                     placeholder="e.g., Check blood pressure"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
@@ -761,12 +828,13 @@ const CreatePrescription: React.FC = () => {
                 </label>
                 <input
                   type="date"
-                  value={formData.valid_until}
+                  value={formState.valid_until}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      valid_until: e.target.value,
-                    }))
+                    dispatch({
+                      type: "SET_FIELD",
+                      field: "valid_until",
+                      value: e.target.value,
+                    })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                 />
@@ -779,12 +847,13 @@ const CreatePrescription: React.FC = () => {
                   type="number"
                   min="0"
                   max="5"
-                  value={formData.refills_allowed}
+                  value={formState.refills_allowed}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      refills_allowed: parseInt(e.target.value) || 0,
-                    }))
+                    dispatch({
+                      type: "SET_FIELD",
+                      field: "refills_allowed",
+                      value: parseInt(e.target.value) || 0,
+                    })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                 />
@@ -799,25 +868,31 @@ const CreatePrescription: React.FC = () => {
                 </label>
                 <button
                   type="button"
-                  onClick={addWarning}
+                  onClick={() => dispatch({ type: "ADD_WARNING" })}
                   className="text-sm text-purple-600 hover:text-purple-700 flex items-center space-x-1"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add Warning</span>
                 </button>
               </div>
-              {formData.warnings?.map((warning, index) => (
+              {formState.warnings?.map((warning, index) => (
                 <div key={index} className="flex items-center space-x-2 mb-2">
                   <input
                     type="text"
                     value={warning}
-                    onChange={(e) => updateWarning(index, e.target.value)}
+                    onChange={(e) =>
+                      dispatch({
+                        type: "UPDATE_WARNING",
+                        index,
+                        value: e.target.value,
+                      })
+                    }
                     placeholder={`Warning ${index + 1}`}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                   />
                   <button
                     type="button"
-                    onClick={() => removeWarning(index)}
+                    onClick={() => dispatch({ type: "REMOVE_WARNING", index })}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -832,12 +907,13 @@ const CreatePrescription: React.FC = () => {
               </label>
               <textarea
                 rows={2}
-                value={formData.doctor_notes}
+                value={formState.doctor_notes}
                 onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    doctor_notes: e.target.value,
-                  }))
+                  dispatch({
+                    type: "SET_FIELD",
+                    field: "doctor_notes",
+                    value: e.target.value,
+                  })
                 }
                 placeholder="Any additional notes for the patient or pharmacy"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"

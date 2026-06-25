@@ -16,8 +16,8 @@ import { useAuth } from "./hooks/useAuth";
 import ViewPatients from "./pages/doctor/viewPatients";
 import DoctorCreateTestRequest from "./pages/doctor/DoctorTestReports";
 import MLTTestRequests from "./pages/mlt/MLTTestRequests";
-import AddPrescription from "./pages/doctor/AddPrescription";
-import PatientPrescriptions from "./pages/patients/PatientPrescriptions";
+import CreatePrescription from "./pages/doctor/AddPrescription";
+import MyPrescriptions from "./pages/patients/PatientPrescriptions";
 
 // ✅ Create a separate component for routes that need auth
 function AppRoutes() {
@@ -52,8 +52,8 @@ function AppRoutes() {
           path="/view-patient-appointments"
           element={<DoctorAppointments />}
         />
-        <Route path="/add-prescription" element={<AddPrescription />} />
-        <Route path="/your-prescriptions" element={<PatientPrescriptions />} />
+        <Route path="/add-prescription" element={<CreatePrescription />} />
+        <Route path="/your-prescriptions" element={<MyPrescriptions />} />
 
         <Route
           path="/doctor/active-appointments"

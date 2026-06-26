@@ -139,38 +139,34 @@ const DoctorCreateTestRequest = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("🟢 Submit initiated");
+    console.log("📝 Current form data:", formData);
 
-    // Validate required fields
-    if (!formData.mlt_name || !formData.mlt_email) {
-      toast.error("Please enter MLT name and email");
-      return;
+    // Validation with detailed logs
+    const validations = [
+      { field: "mlt_name", label: "MLT name" },
+      { field: "mlt_email", label: "MLT email" },
+      { field: "mlt_specialization", label: "MLT specialization" },
+      //{ field: "patientId", label: "Patient ID" },
+      { field: "patient_name", label: "Patient name" },
+      { field: "patient_email", label: "Patient email" },
+      //{ field: "appointmentId", label: "Appointment ID" },
+      { field: "test_name", label: "Test name" },
+      { field: "test_category", label: "Test category" },
+    ];
+
+    for (const validation of validations) {
+      if (!formData[validation.field as keyof CreateTestRequestData]) {
+        console.log(`❌ Validation failed: ${validation.label}`);
+        toast.error(`Please enter ${validation.label}`);
+        return;
+      }
     }
-    if (!formData.mlt_specialization) {
-      toast.error("Please enter MLT specialization");
-      return;
-    }
-    if (
-      !formData.patientId ||
-      !formData.patient_name ||
-      !formData.patient_email
-    ) {
-      toast.error("Please enter patient ID, name and email");
-      return;
-    }
-    if (!formData.appointmentId) {
-      toast.error("Please enter Appointment ID (compulsory)");
-      return;
-    }
-    if (!formData.test_name) {
-      toast.error("Please enter test name");
-      return;
-    }
-    if (!formData.test_category) {
-      toast.error("Please select test category");
-      return;
-    }
+
+    console.log("✅ All validations passed");
 
     setSubmitting(true);
+
     try {
       const payload = {
         ...formData,
@@ -178,19 +174,41 @@ const DoctorCreateTestRequest = () => {
         doctor_name: user?.name || "",
         doctor_email: user?.email || "",
         doctor_specialization: user?.profile?.specialization || "",
+        appointmentId: formData.appointmentId || null,
       };
 
+      console.log("🚀 Sending payload:", payload);
+
       const response = await testReportService.createTestRequest(payload);
+      console.log("📥 Response received:", response);
+
       if (response.success) {
         toast.success("Test request created successfully!");
         navigate("/doctor/test-reports");
+      } else {
+        console.log("⚠️ Response success = false");
+        toast.error(response.message || "Failed to create test request");
       }
     } catch (error: any) {
+      console.error("❌ Error caught:", error);
+
+      if (error.response) {
+        console.error("📄 Error response:", {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers,
+        });
+      }
+
       toast.error(
-        error.response?.data?.error || "Failed to create test request",
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create test request",
       );
     } finally {
       setSubmitting(false);
+      console.log("🔚 Submit finished");
     }
   };
 
@@ -326,20 +344,6 @@ const DoctorCreateTestRequest = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  MLT ID (Auto-filled if selected)
-                </label>
-                <input
-                  type="text"
-                  name="mltId"
-                  value={formData.mltId}
-                  onChange={handleInputChange}
-                  placeholder="Auto-filled from MLT selection"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-teal-500 focus:border-teal-500"
-                  readOnly
-                />
-              </div>
             </div>
           </div>
 
@@ -350,19 +354,6 @@ const DoctorCreateTestRequest = () => {
               Patient Information (Manual Entry)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Patient ID *
-                </label>
-                <input
-                  type="text"
-                  name="patientId"
-                  value={formData.patientId}
-                  onChange={handleInputChange}
-                  placeholder="Enter patient ID"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Patient Name *
@@ -440,24 +431,6 @@ const DoctorCreateTestRequest = () => {
                   placeholder="e.g., A+, B-, O+"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Appointment ID *{" "}
-                  <span className="text-red-500">(Required)</span>
-                </label>
-                <input
-                  type="text"
-                  name="appointmentId"
-                  value={formData.appointmentId}
-                  onChange={handleInputChange}
-                  placeholder="Enter appointment ID"
-                  className="w-full px-4 py-2 border-2 border-red-200 rounded-lg focus:ring-teal-500 focus:border-teal-500"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Appointment ID is required for tracking and verification
-                </p>
               </div>
             </div>
           </div>

@@ -47,24 +47,24 @@ export interface Medication {
   frequency: string;
   duration: string;
 }
-
+// types/testReport.ts
 export interface CreateTestRequestData {
   doctorId: string;
   doctor_name: string;
   doctor_email: string;
   doctor_specialization: string;
-  mltId: string;
+  mltId?: string; // Made optional
   mlt_name: string;
   mlt_email: string;
   mlt_specialization: string;
-  patientId: string;
+  patientId?: string; // Made optional
   patient_name: string;
   patient_email: string;
   patient_phone: string;
   patient_age: string;
   patient_gender: string;
   patient_bloodGroup: string;
-  appointmentId?: string;
+  appointmentId?: string | null;
   test_name: string;
   test_category: 'Hematology' | 'Microbiology' | 'Biochemistry' | 'Pathology' | 'Radiology' | 'Immunology' | 'Other';
   test_description: string;

@@ -42,7 +42,10 @@ const Navbar = () => {
     });
     navLinks.push({ name: "View Patients", href: "/view-patients" });
     navLinks.push({ name: "Add Report", href: "/add-report" });
-    navLinks.push({ name: "Add Prescription", href: "/add-prescription" });
+    navLinks.push({
+      name: "View Prescription",
+      href: "/doctor/prescriptions",
+    });
   } else if (isAuthenticated && user?.role === "patient") {
     navLinks.push({ name: "My Appointments", href: "/appointments/status" });
     navLinks.push({ name: "My Prescriptions", href: "/your-prescriptions" });

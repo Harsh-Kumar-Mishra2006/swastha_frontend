@@ -1,6 +1,7 @@
 // pages/doctor/ViewPatients.tsx
 import { useState, useEffect } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { useNavigate } from "react-router-dom"; // ✅ ADD THIS IMPORT
 import appointmentService from "../../services/appointmentService";
 import { type Appointment } from "../../types/appointments";
 import {
@@ -52,6 +53,7 @@ interface Patient {
 
 const ViewPatients = () => {
   const { user } = useAuth();
+  const navigate = useNavigate(); // ✅ ADD THIS HOOK
   const [loading, setLoading] = useState(true);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
@@ -209,6 +211,27 @@ const ViewPatients = () => {
       });
   };
 
+  // ✅ NEW: Handle Add Prescription
+  const handleAddPrescription = (patient: Patient) => {
+    // Find the latest completed/approved appointment
+    const latestAppointment = patient.appointments
+      .filter(
+        (a) =>
+          a.appointment_status === "approved" ||
+          a.appointment_status === "completed",
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )[0];
+
+    if (latestAppointment) {
+      navigate(`/add-prescription?appointmentId=${latestAppointment._id}`);
+    } else {
+      toast.error("No approved appointment found for this patient");
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const configs: Record<string, { color: string; icon: any }> = {
       pending: { color: "bg-yellow-100 text-yellow-800", icon: PendingIcon },
@@ -247,7 +270,6 @@ const ViewPatients = () => {
 
   const formatPatientId = (id: string) => {
     if (!id) return "N/A";
-    // Show full ID with proper formatting
     return id;
   };
 
@@ -438,7 +460,7 @@ const ViewPatients = () => {
                         <p className="text-sm text-gray-600 truncate ml-7">
                           {patient.email}
                         </p>
-                        {/* ✅ Patient ID Display */}
+                        {/* Patient ID Display */}
                         <div className="flex items-center mt-1 ml-7 space-x-2">
                           <IdCard className="h-3 w-3 text-gray-400" />
                           <span className="text-xs font-mono text-gray-500">
@@ -524,7 +546,7 @@ const ViewPatients = () => {
                   </div>
                 </div>
 
-                {/* ✅ Patient ID Card - Full Display */}
+                {/* Patient ID Card - Full Display */}
                 <div className="mb-6 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg p-4 border border-teal-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -687,42 +709,21 @@ const ViewPatients = () => {
                   </div>
                 </div>
 
-                {/* Close Button */}
-                <div className="mt-6 pt-4 border-t flex justify-end">
+                {/* ✅ FIXED: Actions Section with Add Prescription Button */}
+                <div className="mt-6 pt-4 border-t flex flex-wrap gap-3 justify-end">
+                  {/* ✅ FIXED: Add Prescription Button */}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Find the latest completed/approved appointment
-                      const latestAppointment = patient.appointments
-                        .filter(
-                          (a) =>
-                            a.appointment_status === "approved" ||
-                            a.appointment_status === "completed",
-                        )
-                        .sort(
-                          (a, b) =>
-                            new Date(b.createdAt).getTime() -
-                            new Date(a.createdAt).getTime(),
-                        )[0];
-
-                      if (latestAppointment) {
-                        navigate(
-                          `/add-prescription?appointmentId=${latestAppointment._id}`,
-                        );
-                      } else {
-                        toast.error(
-                          "No approved appointment found for this patient",
-                        );
-                      }
-                    }}
-                    className="px-2 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-1"
+                    onClick={() => handleAddPrescription(selectedPatient)}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
                   >
-                    <FileText className="h-3 w-3" />
+                    <FileText className="h-4 w-4" />
                     <span>Add Prescription</span>
                   </button>
+
+                  {/* Close Button */}
                   <button
                     onClick={() => setShowPatientDetails(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                    className="px-4 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Close Details
                   </button>

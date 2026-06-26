@@ -23,6 +23,7 @@ import {
 } from "../../types/testReport";
 import MLTSection from "./MLTSection";
 import { AdminMLTProvider } from "../../contexts/AdminMLTContext";
+import TestReportsList from "../mlt/TestReportList";
 
 // Wrapper component that provides the context
 const DoctorCreateTestRequestWithProvider = () => {
@@ -687,6 +688,7 @@ const DoctorCreateTestRequest = () => {
           </div>
         </form>
       </div>
+      <TestReportsList />
     </div>
   );
 };

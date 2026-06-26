@@ -13,6 +13,7 @@ import {
   Search,
   Filter,
   ChevronDown,
+  FileText,
   ChevronUp,
   DollarSign,
   Users,
@@ -688,6 +689,37 @@ const ViewPatients = () => {
 
                 {/* Close Button */}
                 <div className="mt-6 pt-4 border-t flex justify-end">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Find the latest completed/approved appointment
+                      const latestAppointment = patient.appointments
+                        .filter(
+                          (a) =>
+                            a.appointment_status === "approved" ||
+                            a.appointment_status === "completed",
+                        )
+                        .sort(
+                          (a, b) =>
+                            new Date(b.createdAt).getTime() -
+                            new Date(a.createdAt).getTime(),
+                        )[0];
+
+                      if (latestAppointment) {
+                        navigate(
+                          `/add-prescription?appointmentId=${latestAppointment._id}`,
+                        );
+                      } else {
+                        toast.error(
+                          "No approved appointment found for this patient",
+                        );
+                      }
+                    }}
+                    className="px-2 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-1"
+                  >
+                    <FileText className="h-3 w-3" />
+                    <span>Add Prescription</span>
+                  </button>
                   <button
                     onClick={() => setShowPatientDetails(false)}
                     className="px-4 py-2 text-gray-600 hover:text-gray-900"

@@ -269,6 +269,43 @@ const CreatePrescription: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (appointmentId) {
+      fetchAppointmentDetails();
+    } else {
+      // If no appointmentId, try to find from URL params or navigate
+      const params = new URLSearchParams(location.search);
+      const id = params.get("appointmentId");
+      if (!id) {
+        toast.error("No appointment selected. Please select a patient first.");
+        navigate("/view-patients");
+      }
+    }
+  }, [appointmentId, location]);
+
+  // Auto-fill patient details from appointment
+  useEffect(() => {
+    if (appointment) {
+      // Auto-populate diagnosis and disease from symptoms if available
+      if (appointment.symptoms && !formState.diagnosis) {
+        dispatch({
+          type: "SET_FIELD",
+          field: "diagnosis",
+          value: `Consultation for ${appointment.symptoms.substring(0, 50)}${appointment.symptoms.length > 50 ? "..." : ""}`,
+        });
+      }
+
+      // You can also pre-fill other fields based on appointment
+      if (!formState.disease) {
+        dispatch({
+          type: "SET_FIELD",
+          field: "disease",
+          value: appointment.doctor_specialization || "General",
+        });
+      }
+    }
+  }, [appointment]);
+
   // Loading state
   if (loadingAppointment) {
     return (

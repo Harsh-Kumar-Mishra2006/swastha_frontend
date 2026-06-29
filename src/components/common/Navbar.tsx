@@ -46,9 +46,11 @@ const Navbar = () => {
       name: "View Prescription",
       href: "/doctor/prescriptions",
     });
+    navLinks.push({ name: "View Report", href: "/view-report" });
   } else if (isAuthenticated && user?.role === "patient") {
     navLinks.push({ name: "My Appointments", href: "/appointments/status" });
     navLinks.push({ name: "My Prescriptions", href: "/your-prescriptions" });
+    navLinks.push({ name: "View Report", href: "/view-report" });
   } else if (isAuthenticated && user?.role === "MLT") {
     navLinks.push({ name: "Test Requests", href: "/mlt-test-requests" });
     navLinks.push({ name: "Create Report", href: "/mlt-createreport" });

@@ -1,4 +1,5 @@
 // types/testReport.ts
+
 export interface TestReport {
   _id: string;
   doctorId: string;
@@ -39,6 +40,16 @@ export interface TestReport {
   completed_date?: string;
   createdAt: string;
   updatedAt: string;
+  
+  // ✅ NEW FIELDS - Add these
+  test_parameters?: TestParameter[];
+  normal_ranges?: NormalRange[];
+  interpretation?: string;
+  clinical_impression?: string;
+  follow_up_instructions?: string;
+  report_visibility?: 'doctor' | 'patient' | 'both';
+  report_version?: number;
+  previous_versions?: any[];
 }
 
 export interface Medication {
@@ -47,17 +58,17 @@ export interface Medication {
   frequency: string;
   duration: string;
 }
-// types/testReport.ts
+
 export interface CreateTestRequestData {
   doctorId: string;
   doctor_name: string;
   doctor_email: string;
   doctor_specialization: string;
-  mltId?: string; // Made optional
+  mltId?: string;
   mlt_name: string;
   mlt_email: string;
   mlt_specialization: string;
-  patientId?: string; // Made optional
+  patientId?: string;
   patient_name: string;
   patient_email: string;
   patient_phone: string;
@@ -77,8 +88,7 @@ export interface CreateTestRequestData {
   medications: Medication[];
 }
 
-// types/testReport.ts - Add new types
-
+// ✅ New Types
 export interface TestParameter {
   name: string;
   value: string;
@@ -93,6 +103,7 @@ export interface NormalRange {
   description: string;
 }
 
+// ✅ Detailed Test Report extends TestReport
 export interface DetailedTestReport extends TestReport {
   test_parameters: TestParameter[];
   normal_ranges: NormalRange[];
@@ -117,5 +128,5 @@ export interface CreateDetailedReportData {
   clinical_impression: string;
   follow_up_instructions: string;
   report_visibility: 'doctor' | 'patient' | 'both';
-  test_report_file?: File;
+  test_report_file?: File | null;
 }

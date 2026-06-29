@@ -19,6 +19,7 @@ import CreatePrescription from "./pages/doctor/AddPrescription";
 import MyPrescriptions from "./pages/patients/PatientPrescriptions";
 import PrescriptionList from "./pages/doctor/PrescritptionList";
 import TestReportsList from "./pages/mlt/TestReportList";
+import MLTCreateReport from "./pages/mlt/MLTCreateReport";
 
 // ✅ Create a separate component for routes that need auth
 function AppRoutes() {
@@ -63,6 +64,7 @@ function AppRoutes() {
           element={isDoctor ? <DoctorAppointments /> : <Navigate to="/" />}
         />
         <Route path="/mlt-test-requests" element={<TestReportsList />} />
+        <Route path="/mlt-createreport" element={<MLTCreateReport />} />
 
         <Route path="*" element={<Home />} />
       </Routes>

@@ -54,6 +54,7 @@ const Navbar = () => {
   } else if (isAuthenticated && user?.role === "MLT") {
     navLinks.push({ name: "Test Requests", href: "/mlt-test-requests" });
     navLinks.push({ name: "Create Report", href: "/mlt-createreport" });
+    navLinks.push({ name: "Reports List", href: "/report-list" });
   }
 
   useEffect(() => {

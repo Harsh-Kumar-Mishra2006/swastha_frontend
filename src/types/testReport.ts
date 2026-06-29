@@ -76,3 +76,46 @@ export interface CreateTestRequestData {
   medical_history: string;
   medications: Medication[];
 }
+
+// types/testReport.ts - Add new types
+
+export interface TestParameter {
+  name: string;
+  value: string;
+  unit: string;
+  normal_range: string;
+  is_abnormal?: boolean;
+}
+
+export interface NormalRange {
+  parameter: string;
+  range: string;
+  description: string;
+}
+
+export interface DetailedTestReport extends TestReport {
+  test_parameters: TestParameter[];
+  normal_ranges: NormalRange[];
+  interpretation: string;
+  clinical_impression: string;
+  follow_up_instructions: string;
+  report_visibility: 'doctor' | 'patient' | 'both';
+  report_version: number;
+  previous_versions: any[];
+}
+
+export interface CreateDetailedReportData {
+  test_results: string;
+  results_summary: string;
+  test_conclusion: string;
+  recommendations: string;
+  mlt_notes: string;
+  report_status: 'completed' | 'in-progress';
+  test_parameters: TestParameter[];
+  normal_ranges: NormalRange[];
+  interpretation: string;
+  clinical_impression: string;
+  follow_up_instructions: string;
+  report_visibility: 'doctor' | 'patient' | 'both';
+  test_report_file?: File;
+}

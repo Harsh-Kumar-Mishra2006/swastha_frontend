@@ -82,8 +82,15 @@ class TestReportService {
     return response.data;
   }
 
+
+
+   async getPublicTestStatistics(): Promise<{ success: boolean; data: any }> {
+    const response = await api.get('/test-reports/public/stats/overview');
+    return response.data;
+  }
+
   // 📌 PUBLIC: Get all test reports (No authentication required)
-  async getPublicTestReports(status?: string, category?: string, search?: string): Promise<{ success: boolean; data: TestReport[]; statistics: any }> {
+   async getPublicTestReports(status?: string, category?: string, search?: string): Promise<{ success: boolean; data: TestReport[]; statistics: any }> {
     let url = '/test-reports/public/all';
     const params = new URLSearchParams();
     if (status && status !== 'all') params.append('status', status);
@@ -98,15 +105,9 @@ class TestReportService {
     return response.data;
   }
 
-    // 📌 PUBLIC: Get single test report by ID
+  // 📌 PUBLIC: Get single test report by ID
   async getPublicTestReport(testId: string): Promise<{ success: boolean; data: TestReport }> {
     const response = await api.get(`/test-reports/public/${testId}`);
-    return response.data;
-  }
-
-  // 📌 PUBLIC: Get test statistics
-  async getPublicTestStatistics(): Promise<{ success: boolean; data: any }> {
-    const response = await api.get('/test-reports/public/stats/overview');
     return response.data;
   }
 

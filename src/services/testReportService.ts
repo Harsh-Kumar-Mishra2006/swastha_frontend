@@ -1,6 +1,6 @@
 // services/testReportService.ts
 import api from './api';
-import { type CreateTestRequestData, type TestReport } from '../types/testReport';
+import { type CreateTestRequestData, type TestReport, type CreateDetailedReportData, type DetailedTestReport } from '../types/testReport';
 
 class TestReportService {
   // Doctor: Create test request
@@ -108,6 +108,71 @@ class TestReportService {
   // 📌 PUBLIC: Get single test report by ID
   async getPublicTestReport(testId: string): Promise<{ success: boolean; data: TestReport }> {
     const response = await api.get(`/test-reports/public/${testId}`);
+    return response.data;
+  }
+
+  // 📌 MLT: Get assigned tests for report creation
+  async getMLTAssignedTests(mltId: string, status?: string): Promise<{ success: boolean; data: TestReport[] }> {
+    const url = status ? `/test-reports/mlt/${mltId}/assigned-tests?status=${status}` : `/test-reports/mlt/${mltId}/assigned-tests`;
+    const response = await api.get(url);
+    return response.data;
+  }
+
+  // 📌 MLT: Create detailed report
+  async createDetailedReport(testId: string, data: CreateDetailedReportData): Promise<{ success: boolean; data: DetailedTestReport }> {
+    const formData = new FormData();
+    
+    // Append all text fields
+    formData.append('test_results', data.test_results);
+    formData.append('results_summary', data.results_summary);
+    formData.append('test_conclusion', data.test_conclusion);
+    formData.append('recommendations', data.recommendations);
+    formData.append('mlt_notes', data.mlt_notes);
+    formData.append('report_status', data.report_status);
+    formData.append('test_parameters', JSON.stringify(data.test_parameters));
+    formData.append('normal_ranges', JSON.stringify(data.normal_ranges));
+    formData.append('interpretation', data.interpretation);
+    formData.append('clinical_impression', data.clinical_impression);
+    formData.append('follow_up_instructions', data.follow_up_instructions);
+    formData.append('report_visibility', data.report_visibility);
+    
+    if (data.test_report_file) {
+      formData.append('test_report_file', data.test_report_file);
+    }
+
+    const response = await api.put(`/test-reports/${testId}/detailed-report`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  }
+
+  // 📌 Get detailed report (Authenticated)
+  async getDetailedReport(testId: string): Promise<{ success: boolean; data: DetailedTestReport }> {
+    const response = await api.get(`/test-reports/${testId}/detailed`);
+    return response.data;
+  }
+
+  // 📌 Get patient's reports
+  async getPatientReports(patientId: string): Promise<{ success: boolean; data: DetailedTestReport[] }> {
+    const response = await api.get(`/test-reports/patient/${patientId}/reports`);
+    return response.data;
+  }
+
+  // 📌 Get doctor's completed reports
+  async getDoctorCompletedReports(doctorId: string): Promise<{ success: boolean; data: DetailedTestReport[] }> {
+    const response = await api.get(`/test-reports/doctor/${doctorId}/completed-reports`);
+    return response.data;
+  }
+
+  // 📌 Download report
+  async downloadReport(testId: string): Promise<{ success: boolean; url: string }> {
+    const response = await api.get(`/test-reports/${testId}/download`);
+    return response.data;
+  }
+
+  // 📌 Get public shareable report
+  async getPublicShareableReport(testId: string): Promise<{ success: boolean; data: DetailedTestReport }> {
+    const response = await api.get(`/test-reports/public/share/${testId}`);
     return response.data;
   }
 

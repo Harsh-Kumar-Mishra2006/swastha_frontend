@@ -23,14 +23,13 @@ import ViewReport from "./pages/report/ViewReport";
 import ViewReportList from "./pages/report/viewReportList";
 import CreateReport from "./pages/mlt/MLTCreateReport";
 
-// ✅ Create a separate component for routes that need auth
 function AppRoutes() {
   const { isDoctor } = useAuth();
 
   return (
     <Layout>
       <Routes>
-        {/* Home Routes - both '/' and '/home' point to Home page */}
+        {/* Home Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
         <Route path="/signup" element={<Signup />} />
@@ -58,25 +57,24 @@ function AppRoutes() {
         />
         <Route path="/add-prescription" element={<CreatePrescription />} />
         <Route path="/your-prescriptions" element={<MyPrescriptions />} />
-
         <Route path="/doctor/prescriptions" element={<PrescriptionList />} />
-
         <Route
           path="/doctor/active-appointments"
           element={isDoctor ? <DoctorAppointments /> : <Navigate to="/" />}
         />
         <Route path="/mlt-test-requests" element={<TestReportsList />} />
-        <Route path="/mlt-createreport" element={<CreateReport />} />
+
+        {/* ✅ FIXED: Add :testId parameter */}
+        <Route path="/mlt-createreport/:testId" element={<CreateReport />} />
+
         <Route path="/view-report" element={<ViewReport />} />
         <Route path="/report-list" element={<ViewReportList />} />
-
         <Route path="*" element={<Home />} />
       </Routes>
     </Layout>
   );
 }
 
-// ✅ Main App component with AuthProvider wrapping everything
 function App() {
   return (
     <BrowserRouter>

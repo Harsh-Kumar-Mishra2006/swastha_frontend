@@ -1,4 +1,4 @@
-// pages/mlt/TestReportsList.tsx
+// pages/mlt/TestReportsList.tsx - FIXED
 import { useState, useEffect } from "react";
 import {
   FileText,
@@ -20,7 +20,7 @@ import {
   Calendar as CalendarIcon,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import testReportService from "../../services/testReportService";
+import testReportService from "../../services/createReportService";
 import { type TestReport } from "../../types/testReport";
 
 const TestReportsList = () => {
@@ -41,17 +41,27 @@ const TestReportsList = () => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      // Fix: Pass the filter and search correctly
-      const response = await testReportService.getPublicTestReports(
-        filter === "all" ? undefined : filter,
-        undefined,
-        searchTerm || undefined,
+
+      // ✅ FIXED: Use the correct method name and parameters
+      // Build filters object
+      const filters: { status?: string; category?: string; search?: string } =
+        {};
+
+      if (filter !== "all") {
+        filters.status = filter;
+      }
+
+      if (searchTerm.trim()) {
+        filters.search = searchTerm;
+      }
+
+      const response = await testReportService.getAllTestReports(
+        Object.keys(filters).length > 0 ? filters : undefined,
       );
 
       if (response.success) {
         setReports(response.data);
         setStats(response.statistics);
-        // Don't auto-select first report
       }
     } catch (error) {
       console.error("❌ Error fetching reports:", error);
@@ -61,8 +71,16 @@ const TestReportsList = () => {
     }
   };
 
+  // ✅ FIXED: Handle search with debounce or separate handler
   const handleSearch = () => {
     fetchReports();
+  };
+
+  // ✅ FIXED: Handle Enter key in search
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
   };
 
   const toggleExpand = (reportId: string) => {
@@ -126,6 +144,36 @@ const TestReportsList = () => {
     );
   };
 
+  // ✅ FIXED: Helper function to format date
+  const formatDate = (date: Date | string | undefined) => {
+    if (!date) return "N/A";
+    try {
+      const dateObj = typeof date === "string" ? new Date(date) : date;
+      if (isNaN(dateObj.getTime())) return "N/A";
+      return dateObj.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "N/A";
+    }
+  };
+
+  // ✅ FIXED: Helper to get status label for display
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending: "Pending",
+      assigned: "Assigned",
+      "in-progress": "In Progress",
+      completed: "Completed",
+      cancelled: "Cancelled",
+    };
+    return labels[status] || status;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -187,7 +235,8 @@ const TestReportsList = () => {
             ].map((stat, index) => (
               <div
                 key={index}
-                className={`${stat.color} rounded-xl p-4 text-center transition-transform hover:scale-105`}
+                className={`${stat.color} rounded-xl p-4 text-center transition-transform hover:scale-105 cursor-pointer`}
+                onClick={() => setFilter(stat.label.toLowerCase())}
               >
                 <div className="text-2xl font-bold">{stat.value}</div>
                 <div className="text-sm">{stat.label}</div>
@@ -217,7 +266,9 @@ const TestReportsList = () => {
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  {status === "all"
+                    ? "All"
+                    : status.charAt(0).toUpperCase() + status.slice(1)}
                 </button>
               ))}
             </div>
@@ -229,7 +280,7 @@ const TestReportsList = () => {
                   placeholder="Search by patient, doctor, test..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                  onKeyPress={handleKeyPress}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 w-64"
                 />
               </div>
@@ -243,7 +294,7 @@ const TestReportsList = () => {
           </div>
         </div>
 
-        {/* Reports Grid - Full Width with Expandable Cards */}
+        {/* Reports Grid */}
         <div className="space-y-4">
           {reports.length === 0 ? (
             <div className="bg-white rounded-xl p-12 text-center">
@@ -288,19 +339,24 @@ const TestReportsList = () => {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 ml-4">
-                        <button className="p-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:shadow-2xl hover:scale-105 hover:bg-gradient-to-r hover:brightness-125 rounded-lg">
-                          View Full Report
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpand(report._id);
+                          }}
+                          className="p-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:shadow-2xl hover:scale-105 rounded-lg transition-all"
+                        >
                           {isExpanded ? (
-                            <ChevronUp className="h-5 w-5 text-white" />
+                            <ChevronUp className="h-5 w-5" />
                           ) : (
-                            <ChevronDown className="h-5 w-5 text-white" />
+                            <ChevronDown className="h-5 w-5" />
                           )}
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Expanded Details - Shows when expanded */}
+                  {/* Expanded Details */}
                   {isExpanded && (
                     <div className="border-t border-gray-200 p-6 bg-gray-50">
                       <div className="space-y-6">
@@ -427,13 +483,15 @@ const TestReportsList = () => {
                             </div>
                             <div>
                               <p className="text-sm text-gray-500">Priority</p>
-                              <p className="font-medium">
+                              <p className="font-medium capitalize">
                                 {report.test_priority}
                               </p>
                             </div>
                             <div>
                               <p className="text-sm text-gray-500">Status</p>
-                              <p className="font-medium">{report.status}</p>
+                              <p className="font-medium">
+                                {getStatusLabel(report.status)}
+                              </p>
                             </div>
                             {report.test_description && (
                               <div className="md:col-span-2">
@@ -575,9 +633,9 @@ const TestReportsList = () => {
                                   <p className="text-sm text-gray-500">
                                     Results
                                   </p>
-                                  <p className="font-medium">
+                                  <div className="font-medium whitespace-pre-wrap bg-white p-3 rounded-lg border border-gray-200">
                                     {report.test_results}
-                                  </p>
+                                  </div>
                                 </div>
                               )}
                               {report.results_summary && (
@@ -648,12 +706,44 @@ const TestReportsList = () => {
                           </div>
                         )}
 
-                        {/* Timestamps */}
+                        {/* ✅ FIXED: Timeline with actual data */}
                         <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                           <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
                             <CalendarIcon className="h-5 w-5 mr-2" />
                             Timeline
                           </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                              <p className="text-xs text-gray-500">Created</p>
+                              <p className="text-sm font-medium">
+                                {formatDate(report.createdAt)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Assigned</p>
+                              <p className="text-sm font-medium">
+                                {formatDate(report.assigned_date)}
+                              </p>
+                            </div>
+                            {report.completed_date && (
+                              <div>
+                                <p className="text-xs text-gray-500">
+                                  Completed
+                                </p>
+                                <p className="text-sm font-medium">
+                                  {formatDate(report.completed_date)}
+                                </p>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-xs text-gray-500">
+                                Last Updated
+                              </p>
+                              <p className="text-sm font-medium">
+                                {formatDate(report.updatedAt)}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

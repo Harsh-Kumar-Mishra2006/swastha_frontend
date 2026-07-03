@@ -1,4 +1,5 @@
-// pages/mlt/CreateReport.tsx
+// pages/mlt/MLTCreateReport.tsx - FIXED with console logging
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import testReportService from "../../services/createReportService";
@@ -24,6 +25,9 @@ import toast from "react-hot-toast";
 const CreateReport: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
   const navigate = useNavigate();
+
+  console.log("🚀 CreateReport component mounted");
+  console.log("📋 testId from params:", testId);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -64,20 +68,51 @@ const CreateReport: React.FC = () => {
   });
 
   useEffect(() => {
+    console.log("🔄 useEffect triggered, testId:", testId);
     if (testId) {
       loadTestReport();
+    } else {
+      console.warn("⚠️ No testId provided in URL params");
+      setLoading(false);
+      toast.error("No test ID provided");
     }
   }, [testId]);
 
   const loadTestReport = async () => {
+    const startTime = Date.now();
+    console.log(
+      `⏱️ [${startTime}] Starting loadTestReport for testId:`,
+      testId,
+    );
+
     try {
       setLoading(true);
+      console.log("⏳ Loading state set to true");
+
+      console.log(`📡 Making API call to getTestReport(${testId})...`);
       const response = await testReportService.getTestReport(testId!);
+
+      const apiDuration = Date.now() - startTime;
+      console.log(`✅ API call completed in ${apiDuration}ms`);
+      console.log("📦 API Response:", response);
+
       if (response.success) {
+        console.log("✅ Response successful, setting test report data");
+        console.log("📋 Test Report Data:", {
+          id: response.data._id,
+          test_name: response.data.test_name,
+          patient_name: response.data.patient_name,
+          status: response.data.status,
+          hasTestParameters: !!response.data.test_parameters,
+          hasNormalRanges: !!response.data.normal_ranges,
+        });
+
         setTestReport(response.data);
         setTestParameters(response.data.test_parameters || []);
         setNormalRanges(response.data.normal_ranges || []);
+
         // Pre-fill form with existing data
+        console.log("📝 Pre-filling form with existing data");
         setFormData({
           test_results: response.data.test_results || "",
           results_summary: response.data.results_summary || "",
@@ -91,11 +126,37 @@ const CreateReport: React.FC = () => {
           follow_up_instructions: response.data.follow_up_instructions || "",
           report_visibility: response.data.report_visibility || "both",
         });
+
+        console.log("✅ Form data populated successfully");
+      } else {
+        console.warn("⚠️ API response was not successful:", response);
+        toast.error("Failed to load test report data");
       }
-    } catch (error) {
-      toast.error("Failed to load test report");
+    } catch (error: any) {
+      const errorTime = Date.now() - startTime;
+      console.error(
+        `❌ Error loading test report after ${errorTime}ms:`,
+        error,
+      );
+      console.error("❌ Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack,
+      });
+
+      if (error.response?.status === 404) {
+        toast.error("Test report not found");
+      } else if (error.response?.status === 403) {
+        toast.error("You don't have permission to view this report");
+      } else {
+        toast.error("Failed to load test report");
+      }
     } finally {
+      const totalDuration = Date.now() - startTime;
+      console.log(`⏱️ loadTestReport completed in ${totalDuration}ms total`);
       setLoading(false);
+      console.log("⏳ Loading state set to false");
     }
   };
 
@@ -105,18 +166,25 @@ const CreateReport: React.FC = () => {
     >,
   ) => {
     const { name, value } = e.target;
+    console.log(`📝 Input changed: ${name} =`, value);
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    console.log("📁 File selected:", file?.name || "No file");
+
     if (file) {
       setSelectedFile(file);
       // Create preview URL for images
       if (file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onloadend = () => {
+          console.log("🖼️ File preview generated");
           setFilePreview(reader.result as string);
+        };
+        reader.onerror = (error) => {
+          console.error("❌ Error reading file:", error);
         };
         reader.readAsDataURL(file);
       } else {
@@ -126,11 +194,20 @@ const CreateReport: React.FC = () => {
   };
 
   const addTestParameter = () => {
+    console.log("➕ Adding test parameter:", newParam);
+
     if (!newParam.name || !newParam.value) {
+      console.warn("⚠️ Parameter name or value missing");
       toast.error("Parameter name and value are required");
       return;
     }
-    setTestParameters((prev) => [...prev, { ...newParam }]);
+
+    setTestParameters((prev) => {
+      const updated = [...prev, { ...newParam }];
+      console.log("📋 Updated test parameters:", updated);
+      return updated;
+    });
+
     setNewParam({
       name: "",
       value: "",
@@ -138,40 +215,72 @@ const CreateReport: React.FC = () => {
       normal_range: "",
       is_abnormal: false,
     });
+    console.log("🔄 Reset new parameter form");
   };
 
   const removeTestParameter = (index: number) => {
-    setTestParameters((prev) => prev.filter((_, i) => i !== index));
+    console.log(`🗑️ Removing test parameter at index ${index}`);
+    setTestParameters((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      console.log("📋 Updated test parameters:", updated);
+      return updated;
+    });
   };
 
   const addNormalRange = () => {
+    console.log("➕ Adding normal range:", newRange);
+
     if (!newRange.parameter || !newRange.range) {
+      console.warn("⚠️ Parameter or range missing");
       toast.error("Parameter and range are required");
       return;
     }
-    setNormalRanges((prev) => [...prev, { ...newRange }]);
+
+    setNormalRanges((prev) => {
+      const updated = [...prev, { ...newRange }];
+      console.log("📋 Updated normal ranges:", updated);
+      return updated;
+    });
+
     setNewRange({ parameter: "", range: "", description: "" });
+    console.log("🔄 Reset new range form");
   };
 
   const removeNormalRange = (index: number) => {
-    setNormalRanges((prev) => prev.filter((_, i) => i !== index));
+    console.log(`🗑️ Removing normal range at index ${index}`);
+    setNormalRanges((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      console.log("📋 Updated normal ranges:", updated);
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("🚀 Form submitted");
 
     if (!testId) {
+      console.error("❌ No testId available");
       toast.error("Invalid test ID");
       return;
     }
 
     // Validate required fields
     if (!formData.test_results.trim()) {
+      console.warn("⚠️ Test results are empty");
       toast.error("Please enter test results");
       return;
     }
 
+    console.log("📝 Form data being submitted:", {
+      ...formData,
+      test_parameters: testParameters.length,
+      normal_ranges: normalRanges.length,
+      hasFile: !!selectedFile,
+    });
+
     setSubmitting(true);
+    const startTime = Date.now();
 
     try {
       const submitData: CreateReportData = {
@@ -181,31 +290,62 @@ const CreateReport: React.FC = () => {
         test_report_file: selectedFile || undefined,
       };
 
+      console.log(`📡 Making API call to createDetailedReport(${testId})...`);
       const response = await testReportService.createDetailedReport(
         testId,
         submitData,
       );
 
+      const duration = Date.now() - startTime;
+      console.log(`✅ API call completed in ${duration}ms`);
+      console.log("📦 Response:", response);
+
       if (response.success) {
+        console.log("✅ Report created successfully!");
         toast.success("Report created successfully!");
         navigate(`/mlt/report/${testId}`);
+      } else {
+        console.warn("⚠️ Response was not successful:", response);
+        toast.error(response.message || "Failed to create report");
       }
     } catch (error: any) {
+      const errorTime = Date.now() - startTime;
+      console.error(`❌ Error submitting report after ${errorTime}ms:`, error);
+      console.error("❌ Error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
       toast.error(error?.response?.data?.error || "Failed to create report");
     } finally {
       setSubmitting(false);
+      console.log("⏳ Submitting state set to false");
     }
   };
 
+  // Log when component re-renders
+  console.log(
+    "🔄 CreateReport rendering, loading:",
+    loading,
+    "submitting:",
+    submitting,
+  );
+
   if (loading) {
+    console.log("⏳ Rendering loading spinner");
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading test report...</p>
+          <p className="text-sm text-gray-400 mt-2">Please wait</p>
+        </div>
       </div>
     );
   }
 
   if (!testReport) {
+    console.warn("⚠️ Rendering: No test report found");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -224,6 +364,7 @@ const CreateReport: React.FC = () => {
 
   // Check if test is already completed
   if (testReport.status === "completed") {
+    console.log("ℹ️ Report already completed, showing view mode");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -254,6 +395,7 @@ const CreateReport: React.FC = () => {
     );
   }
 
+  console.log("✅ Rendering CreateReport form");
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
@@ -314,6 +456,7 @@ const CreateReport: React.FC = () => {
           )}
         </div>
 
+        {/* Rest of the form remains the same... */}
         {/* Report Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Test Results */}

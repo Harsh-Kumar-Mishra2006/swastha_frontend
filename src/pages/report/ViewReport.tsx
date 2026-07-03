@@ -1,9 +1,9 @@
-// pages/reports/ViewReport.tsx
+// pages/report/ViewReport.tsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import testReportService from "../../services/testReportService";
-import { type TestReport } from "../../types/createReport";
+import testReportService from "../../services/createReportService";
+import { type TestReport } from "../../types/testReport";
 import {
   FileText,
   Download,
@@ -16,6 +16,7 @@ import {
   AlertCircle,
   File,
   History,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 

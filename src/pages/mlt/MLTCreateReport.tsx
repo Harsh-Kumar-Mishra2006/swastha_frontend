@@ -1,13 +1,13 @@
 // pages/mlt/CreateReport.tsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import testReportService from "../../services/testReportService";
+import testReportService from "../../services/createReportService";
 import {
   type TestReport,
   type TestParameter,
   type NormalRange,
   type CreateReportData,
-} from "../../types/createReport";
+} from "../../types/testReport";
 import {
   FileText,
   Upload,

@@ -29,7 +29,6 @@ function AppRoutes() {
   return (
     <Layout>
       <Routes>
-        {/* Home Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
         <Route path="/signup" element={<Signup />} />
@@ -64,7 +63,6 @@ function AppRoutes() {
         />
         <Route path="/mlt-test-requests" element={<TestReportsList />} />
 
-        {/* ✅ FIXED: Add :testId parameter */}
         <Route path="/mlt-createreport/:testId" element={<CreateReport />} />
 
         <Route path="/view-report" element={<ViewReport />} />

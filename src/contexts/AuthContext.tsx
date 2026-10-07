@@ -85,17 +85,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         toast.success(response.message || "Login successful!");
 
         // Redirect based on role
-        if (userData.role === "patient") {
-          navigate("/patient/dashboard");
-        } else if (userData.role === "doctor") {
-          navigate("/doctor/dashboard");
-        } else if (userData.role === "admin") {
-          navigate("/admin/dashboard");
-        } else if (userData.role === "MLT") {
-          navigate("/mlt/dashboard");
-        } else {
-          navigate("/");
-        }
+        // if (userData.role === "patient") {
+        //   navigate("/");
+        // } else if (userData.role === "doctor") {
+        //   navigate("/");
+        // } else if (userData.role === "admin") {
+        //   navigate("/");
+        // } else if (userData.role === "MLT") {
+        //   navigate("/mlt/dashboard");
+        // } else {
+        //   navigate("/");
+        // }
+        navigate("/");
       }
     } catch (error: unknown) {
       console.error("Login error:", error);

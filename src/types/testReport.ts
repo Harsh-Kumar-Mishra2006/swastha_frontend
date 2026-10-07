@@ -137,6 +137,50 @@ export interface TestReport {
 }
 
 // ============================================
+// DETAILED REPORT TYPES
+// ============================================
+
+/**
+ * Data required to create a detailed test report (MLT side).
+ * Matches the FormData sent in testReportService.createDetailedReport()
+ */
+export interface CreateDetailedReportData {
+  test_results: string;
+  results_summary: string;
+  test_conclusion: string;
+  recommendations: string;
+  mlt_notes: string;
+  report_status: 'completed' | 'in-progress';
+  test_parameters: TestParameter[];
+  normal_ranges: NormalRange[];
+  interpretation: string;
+  clinical_impression: string;
+  follow_up_instructions: string;
+  report_visibility: 'doctor' | 'patient' | 'both';
+  test_report_file?: File | null;
+}
+
+/**
+ * Detailed test report returned by the backend.
+ * Extends the base TestReport with versioning + history metadata.
+ */
+export interface DetailedTestReport extends TestReport {
+  report_status: 'completed' | 'in-progress';
+  report_version: number;
+  previous_versions: Array<{
+    test_results: string;
+    results_summary: string;
+    test_conclusion: string;
+    recommendations: string;
+    test_parameters: TestParameter[];
+    updatedAt: Date | string;
+    updatedBy: string;
+  }>;
+  report_history?: ReportHistory;  // optional — if your backend returns it
+  shared_at?: Date | string;       // optional — for public share
+  share_token?: string;            // optional — for public share
+}
+// ============================================
 // REQUEST DATA TYPES
 // ============================================
 

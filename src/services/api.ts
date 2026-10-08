@@ -1,40 +1,40 @@
 import axios from 'axios';
-import toast from 'react-hot-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://swastha-backend-p1k0.onrender.com/api';
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  'https://swastha-backend-p1k0.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor to add token
+// Attach token to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// Handle errors — NEVER navigate from here
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const url = error.config?.url || '';
+    const isAuthEndpoint =
+      url.includes('/auth/login') || url.includes('/auth/signup');
+
+    // Only clear auth when a protected endpoint rejects the token.
+    if (status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
-      toast.error('Session expired. Please login again.');
     }
+
     return Promise.reject(error);
   }
 );

@@ -142,7 +142,7 @@ const Profile: React.FC = () => {
         specialization: user?.profile?.specialization || "",
         qualifications: user?.profile?.qualifications || "",
         experience: user?.profile?.experience || "",
-        licenseNumber: user?.profile?.licenseNumber || "",
+        // licenseNumber: user?.profile?.licenseNumber || "",
         department: user?.profile?.department || "",
         age: user?.profile?.age || "",
         gender: (user?.profile?.gender as any) || "",
@@ -1433,12 +1433,12 @@ const Profile: React.FC = () => {
 
                     <div className="flex items-start space-x-3">
                       <ClipboardIcon className="h-5 w-5 text-gray-400 mt-0.5" />
-                      <div>
+                      {/* <div>
                         <p className="text-sm text-gray-500">License Number</p>
                         <p className="text-lg font-medium text-gray-900">
                           {user.profile?.licenseNumber || "Not specified"}
                         </p>
-                      </div>
+                      </div> */}
                     </div>
 
                     <div className="flex items-start space-x-3">

@@ -13,7 +13,6 @@ import {
   Phone,
   FlaskConical,
   Building2,
-  IdCard,
   UserPlus,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -27,8 +26,14 @@ const MLTSection = ({
   onSelectMLT,
   selectable = true,
 }: ViewMLTsSectionProps) => {
-  const { mlts, loading, updateMLTStatus, deleteMLT, resetMLTPassword, canManage } =
-    useAdminMLT(); // ← Get canManage from context
+  const {
+    mlts,
+    loading,
+    updateMLTStatus,
+    deleteMLT,
+    resetMLTPassword,
+    canManage,
+  } = useAdminMLT(); // ← Get canManage from context
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -45,8 +50,8 @@ const MLTSection = ({
     const matchesSearch =
       mlt.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mlt.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mlt.specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mlt.licenseNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      mlt.specialization.toLowerCase().includes(searchTerm.toLowerCase());
+    // mlt.licenseNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === "all" || mlt.status === statusFilter;
 
@@ -121,7 +126,7 @@ const MLTSection = ({
             <p className="text-sm text-gray-600">
               {selectable
                 ? "Click on any MLT to select and auto-fill their details"
-                : canManage 
+                : canManage
                   ? "View and manage all Medical Laboratory Technician accounts"
                   : "View all Medical Laboratory Technician accounts"}
             </p>
@@ -210,7 +215,7 @@ const MLTSection = ({
             {loading ? (
               <tr>
                 <td
-                  colSpan={selectable ? 8 : (canManage ? 7 : 6)}
+                  colSpan={selectable ? 8 : canManage ? 7 : 6}
                   className="px-6 py-12 text-center"
                 >
                   <div className="flex justify-center">
@@ -221,7 +226,7 @@ const MLTSection = ({
             ) : filteredMLTs.length === 0 ? (
               <tr>
                 <td
-                  colSpan={selectable ? 8 : (canManage ? 7 : 6)}
+                  colSpan={selectable ? 8 : canManage ? 7 : 6}
                   className="px-6 py-12 text-center text-gray-500"
                 >
                   No MLTs found
@@ -283,10 +288,10 @@ const MLTSection = ({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900 flex items-center">
+                    {/* <div className="text-sm text-gray-900 flex items-center">
                       <IdCard className="h-3 w-3 mr-1 text-gray-400" />
                       {mlt.licenseNumber}
-                    </div>
+                    </div> */}
                   </td>
                   <td className="px-6 py-4">{getStatusBadge(mlt.status)}</td>
                   <td className="px-6 py-4">

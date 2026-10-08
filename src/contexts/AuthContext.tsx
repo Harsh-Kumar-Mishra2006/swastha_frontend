@@ -100,8 +100,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       }
     } catch (error: unknown) {
       console.error("Login error:", error);
-      const errorMessage = getErrorMessage(error);
-      toast.error(errorMessage || "Login failed");
+      // const errorMessage = getErrorMessage(error);
+      // toast.error(errorMessage || "Login failed");
       throw error;
     } finally {
       setLoading(false);

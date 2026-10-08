@@ -30,8 +30,8 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
 
   if (user && !allowedRoles.includes(user.role)) {
     // Redirect to appropriate dashboard based on role
-    const dashboardPath = `/${user.role}/dashboard`;
-    return <Navigate to={dashboardPath} />;
+    // const dashboardPath = `/${user.role}/dashboard`;
+    return <Navigate to="/" />;
   }
 
   return <>{children}</>;

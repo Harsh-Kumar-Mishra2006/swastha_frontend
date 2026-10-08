@@ -9,41 +9,42 @@ import React, {
 import { useAuth } from "../hooks/useAuth";
 import adminService from "../services/adminService";
 import toast from "react-hot-toast";
+import { type MLT, type AddMLTData } from "../types";
 
-export interface MLT {
-  _id: string;
-  name: string;
-  email: string;
-  phone: string;
-  username: string;
-  specialization: string;
-  qualifications: string;
-  experience: string;
-  licenseNumber: string;
-  department: string;
-  bio: string;
-  status: "active" | "inactive" | "pending";
-  addedBy: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  createdAt: string;
-}
+// export interface MLT {
+//   _id: string;
+//   name: string;
+//   email: string;
+//   phone: string;
+//   username: string;
+//   specialization: string;
+//   qualifications: string;
+//   experience: string;
+//   licenseNumber: string;
+//   department: string;
+//   bio: string;
+//   status: "active" | "inactive" | "pending";
+//   addedBy: {
+//     _id: string;
+//     name: string;
+//     email: string;
+//   };
+//   createdAt: string;
+// }
 
-export interface AddMLTData {
-  name: string;
-  email: string;
-  username: string;
-  phone: string;
-  password: string;
-  specialization: string;
-  qualifications: string;
-  experience: string;
-  licenseNumber: string;
-  department: string;
-  bio?: string;
-}
+// export interface AddMLTData {
+//   name: string;
+//   email: string;
+//   username: string;
+//   phone: string;
+//   password: string;
+//   specialization: string;
+//   qualifications: string;
+//   experience: string;
+//   licenseNumber: string;
+//   department: string;
+//   bio?: string;
+// }
 
 interface AdminMLTContextType {
   mlts: MLT[];

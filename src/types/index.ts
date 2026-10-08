@@ -30,7 +30,7 @@ export interface UserProfile {
   qualifications?: string;
   experience?: string;
   // MLT fields
-  licenseNumber?: string;
+  // licenseNumber?: string;
   department?: string;
   // Patient fields
   diseases?: Disease[];
@@ -67,7 +67,7 @@ export interface MLTProfile {
   specialization: string;
   qualifications: string;
   experience: string;
-  licenseNumber: string;
+  // licenseNumber: string;
   department: string;
   status: string;
   bio?: string;
@@ -86,7 +86,7 @@ export interface MLT {
   specialization: string;
   qualifications: string;
   experience: string;
-  licenseNumber: string;
+  // licenseNumber: string;
   department: string;
   bio: string;
   status: 'active' | 'inactive' | 'pending';
@@ -107,7 +107,7 @@ export interface AddMLTData {
   specialization: string;
   qualifications: string;
   experience: string;
-  licenseNumber: string;
+  // licenseNumber: string;
   department: string;
   bio?: string;
 }
@@ -177,7 +177,7 @@ export interface MLTProfile {
   specialization: string;
   qualifications: string;
   experience: string;
-  licenseNumber: string;
+  // licenseNumber: string;
   department: string;
   status: string;
   bio?: string;
@@ -197,7 +197,7 @@ export interface MLT {
   specialization: string;
   qualifications: string;
   experience: string;
-  licenseNumber: string;
+  // licenseNumber: string;
   department: string;
   bio: string;
   status: 'active' | 'inactive' | 'pending';
@@ -218,7 +218,7 @@ export interface AddMLTData {
   specialization: string;
   qualifications: string;
   experience: string;
-  licenseNumber: string;
+  // licenseNumber: string;
   department: string;
   bio?: string;
 }

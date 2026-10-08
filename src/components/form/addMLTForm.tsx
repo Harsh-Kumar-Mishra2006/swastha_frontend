@@ -26,7 +26,7 @@ const AddMLTForm = () => {
     specialization: "",
     qualifications: "",
     experience: "",
-    licenseNumber: "",
+    // licenseNumber: "",
     department: "",
     bio: "",
   });
@@ -89,7 +89,7 @@ const AddMLTForm = () => {
       "specialization",
       "qualifications",
       "experience",
-      "licenseNumber",
+      // "licenseNumber",
       "department",
     ];
 
@@ -117,10 +117,10 @@ const AddMLTForm = () => {
     }
 
     // Validate license number
-    if (formData.licenseNumber.length < 3) {
-      toast.error("Please enter a valid license number");
-      return false;
-    }
+    // if (formData.licenseNumber.length < 3) {
+    //   toast.error("Please enter a valid license number");
+    //   return false;
+    // }
 
     // Validate password
     if (formData.password.length < 6) {
@@ -151,7 +151,7 @@ const AddMLTForm = () => {
       specialization: formData.specialization,
       qualifications: formData.qualifications,
       experience: formData.experience,
-      licenseNumber: formData.licenseNumber,
+      // licenseNumber: formData.licenseNumber,
       department: formData.department,
       bio: formData.bio || "(empty)",
     });
@@ -166,7 +166,7 @@ const AddMLTForm = () => {
         specialization: formData.specialization.trim(),
         qualifications: formData.qualifications.trim(),
         experience: formData.experience.trim(),
-        licenseNumber: formData.licenseNumber.trim().toUpperCase(),
+        // licenseNumber: formData.licenseNumber.trim().toUpperCase(),
         department: formData.department.trim(),
         bio: formData.bio?.trim() || undefined,
       };
@@ -189,7 +189,7 @@ const AddMLTForm = () => {
         specialization: "",
         qualifications: "",
         experience: "",
-        licenseNumber: "",
+        // licenseNumber: "",
         department: "",
         bio: "",
       });
@@ -473,7 +473,7 @@ const AddMLTForm = () => {
               />
             </div>
 
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 License Number <span className="text-red-500">*</span>
               </label>
@@ -486,7 +486,7 @@ const AddMLTForm = () => {
                 placeholder="MLT-2024-001"
                 required
               />
-            </div>
+            </div> */}
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">

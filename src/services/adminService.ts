@@ -29,7 +29,7 @@ export interface AddMLTData {
   specialization: string;
   qualifications: string;
   experience: string;
-  licenseNumber: string;
+  // licenseNumber: string;
   department: string;
   bio?: string;
 }

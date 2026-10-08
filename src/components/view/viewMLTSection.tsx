@@ -13,7 +13,6 @@ import {
   Phone,
   FlaskConical,
   Building2,
-  IdCard,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -36,8 +35,8 @@ const ViewMLTsSection = () => {
     const matchesSearch =
       mlt.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       mlt.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mlt.specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mlt.licenseNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      mlt.specialization.toLowerCase().includes(searchTerm.toLowerCase());
+    // mlt.licenseNumber.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = statusFilter === "all" || mlt.status === statusFilter;
 
@@ -239,12 +238,12 @@ const ViewMLTsSection = () => {
                       {mlt.experience} exp • {mlt.qualifications}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  {/* <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 flex items-center">
                       <IdCard className="h-3 w-3 mr-1 text-gray-400" />
                       {mlt.licenseNumber}
                     </div>
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4">{getStatusBadge(mlt.status)}</td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900">
